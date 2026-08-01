@@ -1,0 +1,45 @@
+.chips {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--border-default);
+  border-radius: 999px;
+  background: var(--bg-surface-raised);
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  box-shadow: var(--shadow-raised);
+}
+
+.chip:hover {
+  color: var(--text-primary);
+  border-color: var(--text-muted);
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--status-done);
+}
+
+.amount {
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+}
+
+.expired {
+  border-color: color-mix(in srgb, var(--status-error) 55%, transparent);
+  color: var(--status-error);
+}
+
+.expired:hover {
+  border-color: var(--status-error);
+  color: var(--status-error);
+}

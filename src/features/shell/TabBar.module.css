@@ -1,0 +1,91 @@
+.bar {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  height: 36px;
+  padding: var(--space-1) var(--space-2) 0;
+  background: var(--bg-input);
+  border-bottom: 1px solid var(--border-default);
+  user-select: none;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  max-width: 200px;
+  padding: 0 var(--space-3);
+  border: none;
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  background: none;
+  color: var(--text-muted);
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.tab:hover {
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+}
+
+/* Active tab — visually continuous with the canvas surface */
+.tab[data-active='true'] {
+  background: var(--bg-canvas);
+  color: var(--text-primary);
+}
+
+.homeIcon {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+}
+
+.name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.close {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.close:hover {
+  background: var(--bg-hover);
+  color: var(--accent-coral);
+}
+
+.newTab {
+  align-self: center;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  margin-left: var(--space-1);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.newTab:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}

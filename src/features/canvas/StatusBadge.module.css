@@ -1,0 +1,43 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 2px var(--space-2);
+  border: 1px solid var(--border-default);
+  border-radius: 999px;
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  line-height: 16px;
+  user-select: none;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--status-idle);
+}
+
+.badge[data-status='running'] .dot {
+  background: var(--status-running);
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+.badge[data-status='done'] .dot {
+  background: var(--status-done);
+}
+
+.badge[data-status='error'] {
+  color: var(--status-error);
+}
+
+.badge[data-status='error'] .dot {
+  background: var(--status-error);
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.35;
+  }
+}

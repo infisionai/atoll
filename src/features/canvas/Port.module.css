@@ -1,0 +1,88 @@
+.port {
+  width: 12px;
+  height: 12px;
+  padding: 0;
+  border-radius: 50%;
+  border: 2px solid var(--text-muted);
+  background: var(--bg-canvas);
+  cursor: crosshair;
+  transition:
+    transform var(--default-transition-duration) var(--default-transition-timing-function),
+    border-color var(--default-transition-duration) var(--default-transition-timing-function),
+    box-shadow var(--default-transition-duration) var(--default-transition-timing-function);
+}
+
+/* Reflexes — anything grabbable reacts the instant you touch it */
+.port:hover,
+.port:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  transform: scale(1.3);
+  box-shadow: var(--glow-accent);
+}
+
+/* Connected — a living signal. (Placement classes apply absolute, so this anchors the ::after) */
+.port[data-connected='true'] {
+  border-color: var(--accent);
+}
+
+.port[data-connected='true']::after {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+/* Connection candidate during drag — breathes as an invitation */
+.port[data-candidate='true'] {
+  border-color: var(--accent);
+  animation: invite 1.2s var(--ease-in-out) infinite;
+}
+
+@keyframes invite {
+  0%,
+  100% {
+    box-shadow: 0 0 0 rgba(47, 201, 190, 0);
+  }
+  50% {
+    box-shadow: var(--glow-accent);
+  }
+}
+
+/* Multi-connection (2+) — the port fills with lagoon and the count sits inside the circle */
+.port[data-multi='true'] {
+  width: 16px;
+  height: 16px;
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.port[data-multi='true']::after {
+  content: none; /* number replaces the connection dot */
+}
+
+.count {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--text-on-accent);
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: var(--font-weight-semibold);
+  line-height: 1;
+  pointer-events: none;
+}
+
+/* Not connectable during drag — sinks into darkness; hover response is disabled too */
+.port[data-dimmed='true'] {
+  opacity: var(--opacity-disabled);
+  cursor: not-allowed;
+}
+
+.port[data-dimmed='true']:hover {
+  border-color: var(--text-muted);
+  transform: none;
+  box-shadow: none;
+}

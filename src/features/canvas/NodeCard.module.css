@@ -1,0 +1,150 @@
+.card {
+  position: relative;
+  width: var(--node-width-model);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xl);
+  background: var(--bg-surface);
+  /* Ports hang past the border, so overflow is not clipped */
+}
+
+.card[data-selected='true'] {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--border-default);
+  background: var(--bg-surface-raised);
+  border-radius: calc(var(--radius-xl) - 1px) calc(var(--radius-xl) - 1px) 0 0;
+}
+
+/* MCP provider label — the header shows at a glance whose credits will be spent */
+.mcpProvider {
+  margin-left: auto;
+  margin-right: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.cost {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border-radius: 50%;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition:
+    color var(--default-transition-duration) var(--default-transition-timing-function),
+    border-color var(--default-transition-duration) var(--default-transition-timing-function);
+  font-size: 10px;
+}
+
+button.cost:hover:not(:disabled) {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* Run failure reason — coral is reserved for warnings */
+.errorNote {
+  margin: calc(var(--space-1) * -1) 0 0;
+  padding: 0 var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--accent-coral);
+}
+
+/* Confirmed estimate — monospace digits, a pill instead of a circle */
+.costKnown {
+  width: auto;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-md);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.costLoading {
+  color: var(--text-muted);
+}
+
+.costLoading svg {
+  animation: costSpin 0.9s linear infinite;
+}
+
+@keyframes costSpin {
+  to {
+    rotate: 360deg;
+  }
+}
+
+.titleRow {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4) 0;
+}
+
+.title {
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.provider {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+/* Output port placement — hangs on the card's right edge (compensates titleRow padding). Shape and state live in Port */
+.outPortPos {
+  position: absolute;
+  right: -8px;
+  top: calc(50% + 6px);
+  translate: 0 -50%;
+}
+
+.body {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4) var(--space-4);
+}
+
+.advancedToggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  padding: var(--space-1);
+}
+
+.advancedToggle:hover {
+  color: var(--text-secondary);
+}
+
+.advancedDash {
+  width: 20px;
+  height: 1px;
+  background: var(--border-default);
+}
+
+.advancedChevron {
+  transition: transform var(--default-transition-duration) var(--default-transition-timing-function);
+}
+
+.advancedChevron[data-open='true'] {
+  transform: rotate(180deg);
+}

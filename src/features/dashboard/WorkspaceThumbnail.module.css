@@ -1,0 +1,29 @@
+/* Card thumbnail frame — same background as the canvas */
+.frame {
+  width: 100%;
+  height: 100%;
+  background-color: var(--bg-canvas);
+}
+
+.svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.node {
+  fill: var(--bg-surface);
+  stroke: var(--border-default);
+  stroke-width: 0.6;
+}
+
+/* Generator (model) node — hierarchy through depth even in the minimap: surface one step brighter */
+.node[data-kind='model'] {
+  fill: var(--bg-surface-raised, var(--bg-surface));
+}
+
+.edge {
+  fill: none;
+  stroke: var(--border-strong, var(--border-default));
+  stroke-width: 0.8;
+}

@@ -1,0 +1,11 @@
+.center {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+.error {
+  color: var(--status-error);
+}

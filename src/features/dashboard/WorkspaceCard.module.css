@@ -1,0 +1,135 @@
+.card {
+  display: grid;
+  gap: var(--space-2);
+  /* Group entrance on home load — Dashboard staggers the delays in card order */
+  animation: cardIn 200ms var(--ease-out) backwards;
+}
+
+@keyframes cardIn {
+  from {
+    opacity: 0;
+    translate: 0 6px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    animation: none;
+  }
+}
+
+.thumbButton {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  padding: 0;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color var(--default-transition-duration) var(--default-transition-timing-function);
+}
+
+.thumbButton:hover {
+  border-color: var(--text-muted);
+}
+
+.thumbButton:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+
+.meta {
+  display: grid;
+  gap: 2px;
+  padding: 0 var(--space-1);
+}
+
+.nameRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.name {
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nameInput {
+  flex: 1;
+  min-width: 0;
+  padding: 2px var(--space-1);
+  border: 1px solid var(--border-focus);
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  outline: none;
+}
+
+.time {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.menuWrap {
+  position: relative;
+  margin-left: auto;
+}
+
+.menuButton {
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.menuButton:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + var(--space-1));
+  z-index: 5;
+  min-width: 120px;
+  display: grid;
+  padding: var(--space-1);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface-raised);
+  box-shadow: var(--shadow-raised);
+}
+
+.menuItem {
+  padding: var(--space-1) var(--space-2);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  text-align: left;
+  cursor: pointer;
+}
+
+.menuItem:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.menuDanger:hover {
+  color: var(--accent-coral);
+}

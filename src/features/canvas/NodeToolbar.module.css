@@ -1,0 +1,77 @@
+.toolbar {
+  display: inline-flex;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface-raised);
+  box-shadow: var(--shadow-raised);
+}
+
+.button {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition:
+    background var(--default-transition-duration) var(--default-transition-timing-function),
+    color var(--default-transition-duration) var(--default-transition-timing-function);
+}
+
+.button:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.button:active {
+  background: var(--bg-selected);
+}
+
+.button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.button[data-active='true'] {
+  color: var(--accent);
+  background: var(--bg-selected);
+}
+
+.button:disabled {
+  opacity: var(--opacity-disabled);
+  cursor: default;
+}
+
+.icon {
+  width: 16px;
+  height: 16px;
+}
+
+/* Run — lagoon-tinted chip (green-tinted play-button treatment) */
+.run {
+  color: var(--accent);
+  background: var(--bg-selected);
+}
+
+.run:hover {
+  color: var(--accent-strong);
+  background: var(--bg-selected);
+}
+
+.run:disabled {
+  opacity: 1;
+  color: var(--accent);
+}
+
+.spinner {
+  animation: var(--animate-spin);
+}
+
+.delete:hover {
+  color: var(--accent-coral);
+}
