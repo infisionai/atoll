@@ -1,0 +1,180 @@
+/* Reset */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* ── Atoll brand palette ──────────────────────────────
+   Derived from an atoll: deep sea (surfaces) · lagoon (accent) · coral (secondary)
+   Dark-first. All colors are defined here only; components reference the variables. */
+:root {
+  /* Surfaces — deep sea. Near-black with a teal cast */
+  --bg-canvas: #0c1519;
+  --bg-surface: #131f24;
+  --bg-surface-raised: #1a2a30;
+  --bg-input: #0f1a1f;
+
+  /* Borders */
+  --border-default: #24373e;
+  --border-focus: var(--accent);
+
+  /* Text — sea-foam white range */
+  --text-primary: #eaf4f4;
+  --text-secondary: #9ab2b5;
+  --text-muted: #5f757a;
+
+  /* Accent — lagoon turquoise */
+  --accent: #2fc9be;
+  --accent-strong: #7be8de;
+  /* Secondary accent — coral. Only where attention must be drawn (destructive actions, warning emphasis) */
+  --accent-coral: #ff7a66;
+
+  /* Status */
+  --status-idle: #5f757a;
+  --status-running: #e5b54a;
+  --status-done: #43cf97;
+  --status-error: #f0635c;
+
+  /* Interaction states — every changing state goes through a token */
+  --bg-hover: #1e3138;
+  --bg-selected: rgba(47, 201, 190, 0.12);
+  --text-on-accent: #04211e;
+  --opacity-disabled: 0.45;
+
+  /* Depth and light — floating things get shadows, living signals get glows. Nothing improvised beyond these two */
+  --shadow-raised: 0 4px 16px rgba(0, 0, 0, 0.35);
+  --glow-accent: 0 0 12px rgba(47, 201, 190, 0.35);
+}
+
+/* ── Size scale (follows the Tailwind v4 spec) ──────────
+   Spacing uses --spacing multiples; typography, radii, easing, and blur use only the tokens below.
+   The app's base font size is --text-xs (0.75rem). */
+:root {
+  --spacing: 0.25rem;
+  --space-1: calc(var(--spacing) * 1);
+  --space-2: calc(var(--spacing) * 2);
+  --space-3: calc(var(--spacing) * 3);
+  --space-4: calc(var(--spacing) * 4);
+  --space-5: calc(var(--spacing) * 6);
+
+  --container-xs: 20rem;
+  --container-sm: 24rem;
+  --container-md: 28rem;
+  --container-lg: 32rem;
+  --container-xl: 36rem;
+  --container-2xl: 42rem;
+  --container-3xl: 48rem;
+  --container-4xl: 56rem;
+  --container-5xl: 64rem;
+  --container-6xl: 72rem;
+  --container-7xl: 80rem;
+
+  /* Font-only scale factor — no effect on spacing or radii. Adjust overall sizing with this single value */
+  --font-scale: 0.92;
+
+  --text-xs: calc(0.75rem * var(--font-scale));
+  --text-xs--line-height: calc(1.125rem * var(--font-scale));
+  --text-sm: calc(0.875rem * var(--font-scale));
+  --text-sm--line-height: calc(1.25 / 0.875);
+  --text-base: calc(1rem * var(--font-scale));
+  --text-base--line-height: calc(1.5 / 1);
+  --text-lg: calc(1.125rem * var(--font-scale));
+  --text-lg--line-height: calc(1.75 / 1.125);
+  --text-xl: calc(1.25rem * var(--font-scale));
+  --text-xl--line-height: calc(1.875rem * var(--font-scale));
+  --text-2xl: calc(1.5rem * var(--font-scale));
+  --text-2xl--line-height: calc(2 / 1.5);
+  --text-3xl: calc(1.875rem * var(--font-scale));
+  --text-3xl--line-height: calc(2.25 / 1.875);
+  --text-4xl: calc(2.25rem * var(--font-scale));
+  --text-4xl--line-height: calc(2.5 / 2.25);
+  --text-5xl: calc(3rem * var(--font-scale));
+  --text-5xl--line-height: 1;
+
+  --font-weight-light: 300;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  --tracking-tight: -0.025em;
+  --tracking-normal: 0em;
+  --tracking-wide: 0.025em;
+  --tracking-wider: 0.05em;
+  --tracking-widest: 0.1em;
+
+  --leading-tight: 1.25;
+  --leading-snug: 1.375;
+  --leading-relaxed: 1.625;
+
+  --radius-xs: 0.125rem;
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --radius-2xl: 1rem;
+  --radius-3xl: 1.5rem;
+
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --default-transition-duration: 0.15s;
+  --default-transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+
+  --blur-sm: 8px;
+  --blur-md: 12px;
+  --blur-xl: 24px;
+  --blur-2xl: 40px;
+  --blur-3xl: 64px;
+
+  --aspect-video: 16 / 9;
+
+  --animate-spin: spin 1s linear infinite;
+  --animate-pulse: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-shimmer: shimmer 2s linear infinite;
+
+  --font-ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Pretendard', sans-serif;
+  --font-mono: 'SF Mono', 'JetBrains Mono', ui-monospace, monospace;
+
+  /* ── Layout rules — placement uses only these tokens ── */
+  /* Horizontal page padding (dashboard, etc.) */
+  --layout-page-padding: calc(var(--spacing) * 10);
+  /* Minimum card width in card grids (basis for auto-fill minmax) */
+  --grid-card-min: 15rem;
+  /* Three standard node widths — new nodes must use one of these */
+  --node-width-asset: 208px;
+  --node-width-op: 240px;
+  --node-width-model: 300px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+body {
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  line-height: var(--text-xs--line-height);
+  color: var(--text-primary);
+  background: var(--bg-canvas);
+  -webkit-font-smoothing: antialiased;
+}

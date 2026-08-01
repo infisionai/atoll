@@ -1,0 +1,103 @@
+import { BusyButton } from '../../shared/BusyButton'
+import type { ProviderStatus } from '../canvas/library/providers'
+import styles from './ProviderSettings.module.css'
+
+interface ProviderSettingsProps {
+  providers: ProviderStatus[]
+  onConnect: (id: string) => Promise<unknown> | void
+  onDisconnect: (id: string) => Promise<unknown> | void
+  onRefreshBalance: (id: string) => Promise<unknown> | void
+  /** Buy credits — opens the provider's web checkout page in an external browser (no in-app payments) */
+  onBuyCredits: (id: string) => void
+  onBack?: () => void
+}
+
+/** Settings > Provider connections — the settings screen inside the Home tab */
+export function ProviderSettings({
+  providers,
+  onConnect,
+  onDisconnect,
+  onRefreshBalance,
+  onBuyCredits,
+  onBack,
+}: ProviderSettingsProps) {
+  return (
+    <div className={styles.page}>
+      <header className={styles.hero}>
+        {onBack && (
+          <button type="button" className={styles.back} onClick={onBack}>
+            ← Dashboard
+          </button>
+        )}
+        <h1 className={styles.title}>Provider Connections</h1>
+        <p className={styles.subtitle}>Connect the MCP providers you want to generate with.</p>
+      </header>
+
+      <div className={styles.list}>
+        {providers.map((p) => (
+          <article key={p.id} className={styles.card} data-state={p.state}>
+            <div className={styles.cardHead}>
+              <span className={styles.stateDot} data-state={p.state} aria-hidden />
+              <span className={styles.name}>{p.name}</span>
+              <span className={styles.stateLabel} data-state={p.state}>
+                {p.state === 'connected' && `Connected${p.account ? ` · ${p.account}` : ''}`}
+                {p.state === 'connecting' && 'Connecting…'}
+                {p.state === 'disconnected' && 'Not connected'}
+                {p.state === 'expired' && 'Session expired — sign in again'}
+              </span>
+            </div>
+
+            {p.state === 'connected' && (
+              <div className={styles.balanceRow}>
+                <span className={styles.balance}>⚡ {p.balance?.toFixed(2) ?? '—'}</span>
+                {p.notice && <span className={styles.notice}>{p.notice}</span>}
+                <BusyButton className={styles.action} onClick={() => onRefreshBalance(p.id)}>
+                  Refresh balance
+                </BusyButton>
+                <button type="button" className={styles.action} onClick={() => onBuyCredits(p.id)}>
+                  Buy credits ↗
+                </button>
+                <BusyButton
+                  className={`${styles.action} ${styles.danger}`}
+                  onClick={() => onDisconnect(p.id)}
+                >
+                  Disconnect
+                </BusyButton>
+              </div>
+            )}
+
+            {p.state === 'disconnected' && (
+              <div className={styles.balanceRow}>
+                {p.description && <span className={styles.description}>{p.description}</span>}
+                <BusyButton
+                  className={`${styles.action} ${styles.primary}`}
+                  onClick={() => onConnect(p.id)}
+                >
+                  Connect
+                </BusyButton>
+              </div>
+            )}
+
+            {p.state === 'connecting' && (
+              <div className={styles.balanceRow}>
+                <span className={styles.description}>Finish signing in from your browser…</span>
+              </div>
+            )}
+
+            {p.state === 'expired' && (
+              <div className={styles.balanceRow}>
+                <span className={styles.description}>Token refresh failed.</span>
+                <BusyButton
+                  className={`${styles.action} ${styles.primary}`}
+                  onClick={() => onConnect(p.id)}
+                >
+                  Reconnect
+                </BusyButton>
+              </div>
+            )}
+          </article>
+        ))}
+      </div>
+    </div>
+  )
+}

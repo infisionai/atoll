@@ -1,0 +1,201 @@
+/* Right-docked terminal panel — a deep-sea control room console */
+.panel {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  height: 100%;
+  background: var(--bg-canvas);
+  border-left: 1px solid var(--border-default);
+  flex: none;
+  /* Slides in from its docked side (right) — spatial consistency */
+  animation: panelIn 250ms var(--ease-out);
+}
+
+@keyframes panelIn {
+  from {
+    translate: 100% 0;
+  }
+}
+
+/* Left-edge resize handle — generous hit area, restrained visuals */
+.resizeHandle {
+  position: absolute;
+  left: -3px;
+  top: 0;
+  bottom: 0;
+  width: 7px;
+  cursor: col-resize;
+  z-index: 1;
+}
+
+.resizeHandle:hover {
+  background: linear-gradient(to right, transparent 2px, var(--accent) 3px, transparent 5px);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--border-default);
+  background: var(--bg-surface);
+}
+
+/* Session status dot — light = state = life */
+.statusDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.statusDot[data-status='running'] {
+  background: var(--accent);
+  box-shadow: var(--glow-accent);
+}
+
+.statusDot[data-status='starting'] {
+  background: var(--accent);
+  opacity: 0.5;
+  animation: pulse 1.2s var(--ease-out) infinite alternate;
+}
+
+.statusDot[data-status='exited'] {
+  background: var(--text-muted);
+}
+
+@keyframes pulse {
+  from {
+    opacity: 0.35;
+  }
+  to {
+    opacity: 0.9;
+  }
+}
+
+.title {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.statusLabel {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.actions {
+  margin-left: auto;
+  display: flex;
+  gap: var(--space-1);
+}
+
+.action {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background var(--default-transition-duration) var(--default-transition-timing-function);
+}
+
+.action:hover {
+  background: var(--bg-surface-raised);
+  color: var(--text-primary);
+}
+
+.body {
+  position: relative;
+  min-height: 0;
+  display: grid;
+}
+
+.terminal {
+  min-height: 0;
+  padding: var(--space-2) 0 var(--space-2) var(--space-2);
+}
+
+/* No session — centered agent picker; previous session output sinks behind */
+.pickerOverlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--bg-canvas) 78%, transparent);
+  backdrop-filter: blur(2px);
+  animation: pickerIn 150ms var(--ease-out);
+}
+
+@keyframes pickerIn {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel,
+  .pickerOverlay {
+    animation: none;
+  }
+}
+
+.picker {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: stretch;
+  min-width: 200px;
+}
+
+.pickerTitle {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  text-align: center;
+  margin-bottom: var(--space-1);
+}
+
+.pickerItem {
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    border-color var(--default-transition-duration) var(--default-transition-timing-function),
+    color var(--default-transition-duration) var(--default-transition-timing-function),
+    box-shadow var(--default-transition-duration) var(--default-transition-timing-function);
+}
+
+.pickerItem:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  box-shadow: var(--glow-accent);
+}
+
+/* Make xterm internals fill the panel height */
+.terminal :global(.xterm) {
+  height: 100%;
+}
+
+/* Korean IME composition preview — a body overlay at the cursor position (xterm's hidden textarea rect).
+   Display-only, so it never touches the terminal buffer (korean-ime.ts) */
+.imePreview {
+  position: fixed;
+  display: none;
+  z-index: 100;
+  padding: 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-primary);
+  background: var(--bg-canvas);
+  border-bottom: 1px solid var(--accent);
+  pointer-events: none;
+  white-space: pre;
+}

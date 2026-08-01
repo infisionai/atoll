@@ -1,0 +1,158 @@
+.page {
+  min-height: 100%;
+  padding: var(--space-5) var(--layout-page-padding);
+  background: var(--bg-canvas);
+}
+
+.hero {
+  display: grid;
+  gap: var(--space-2);
+  padding: calc(var(--spacing) * 8) 0 calc(var(--spacing) * 6);
+}
+
+.title {
+  font-size: var(--text-2xl);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: var(--tracking-tight);
+}
+
+.subtitle {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.list {
+  display: grid;
+  gap: var(--space-3);
+  max-width: var(--container-2xl);
+}
+
+.card {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+}
+
+.card[data-state='expired'] {
+  border-color: color-mix(in srgb, var(--status-error) 55%, transparent);
+}
+
+.cardHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.stateDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+
+.stateDot[data-state='connected'] {
+  background: var(--status-done);
+}
+
+.stateDot[data-state='connecting'] {
+  background: var(--status-running);
+  animation: var(--animate-pulse);
+}
+
+.stateDot[data-state='expired'] {
+  background: var(--status-error);
+}
+
+.name {
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.stateLabel {
+  margin-left: auto;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.stateLabel[data-state='expired'] {
+  color: var(--status-error);
+}
+
+.balanceRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.balance {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  margin-right: var(--space-2);
+}
+
+.description {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  margin-right: auto;
+}
+
+/* Notice when connected but usage is restricted (e.g. premium-only) */
+.notice {
+  font-size: var(--text-xs);
+  color: var(--accent-coral);
+  margin-right: auto;
+}
+
+.action {
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  cursor: pointer;
+}
+
+.action:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.action:first-of-type {
+  margin-left: auto;
+}
+
+.primary {
+  border-color: var(--accent);
+  background: var(--bg-selected);
+  color: var(--accent-strong);
+}
+
+.primary:hover {
+  background: var(--accent);
+  color: var(--text-on-accent);
+}
+
+.danger:hover {
+  border-color: var(--accent-coral);
+  color: var(--accent-coral);
+  background: none;
+}
+
+.back {
+  justify-self: start;
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  padding: 0;
+}
+
+.back:hover {
+  color: var(--text-secondary);
+}

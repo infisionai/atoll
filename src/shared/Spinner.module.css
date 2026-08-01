@@ -1,0 +1,3 @@
+.spin {
+  animation: var(--animate-spin);
+}

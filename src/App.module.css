@@ -1,0 +1,22 @@
+.shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--bg-canvas);
+}
+
+.main {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+
+.pane {
+  height: 100%;
+  overflow: auto;
+}
+
+.pane[hidden] {
+  display: none;
+}
+

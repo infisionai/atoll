@@ -1,0 +1,45 @@
+.screen {
+  display: flex;
+  height: 100%;
+  background: var(--bg-canvas);
+}
+
+.canvasArea {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+}
+
+/* Terminal open toggle — bottom-right, same floating-control spec as the view bar */
+.terminalToggle {
+  position: absolute;
+  right: var(--space-4);
+  bottom: var(--space-4);
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  box-shadow: var(--shadow-raised);
+  cursor: pointer;
+  transition:
+    color var(--default-transition-duration) var(--default-transition-timing-function),
+    border-color var(--default-transition-duration) var(--default-transition-timing-function);
+}
+
+.terminalToggle:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* Balance chip — top-right of the canvas area (naturally sits left of the terminal panel) */
+.chipsOverlay {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-4);
+  z-index: 10;
+}

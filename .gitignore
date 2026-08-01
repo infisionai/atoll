@@ -1,0 +1,17 @@
+dev_docs/
+.claude/skills/
+skills-lock.json
+.idea/
+.DS_Store
+node_modules/
+dist/
+storybook-static/
+.playwright-mcp/
+src-tauri/target/
+src-tauri/gen/
+
+# Secrets — never commit
+.env*
+secrets/
+*.pem
+*.key
