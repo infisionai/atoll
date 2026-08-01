@@ -74,9 +74,9 @@
   z-index: 2;
   width: 20px;
   height: 20px;
-  border: 1px solid var(--border-default);
+  border: 1px solid var(--border-strong);
   border-radius: 50%;
-  background: var(--bg-surface-raised);
+  background: var(--bg-overlay);
   color: var(--text-secondary);
   font-size: var(--text-xs);
   line-height: 1;
@@ -116,9 +116,9 @@
   align-items: center;
   gap: var(--space-1);
   padding: var(--space-1);
-  border: 1px solid var(--border-default);
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-lg);
-  background: var(--bg-surface-raised);
+  background: var(--bg-overlay);
   box-shadow: var(--shadow-raised);
 }
 

@@ -108,9 +108,9 @@
   min-width: 120px;
   display: grid;
   padding: var(--space-1);
-  border: 1px solid var(--border-default);
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-md);
-  background: var(--bg-surface-raised);
+  background: var(--bg-overlay);
   box-shadow: var(--shadow-raised);
 }
 

@@ -11,14 +11,19 @@
    Derived from an atoll: deep sea (surfaces) · lagoon (accent) · coral (secondary)
    Dark-first. All colors are defined here only; components reference the variables. */
 :root {
-  /* Surfaces — deep sea. Near-black with a teal cast */
-  --bg-canvas: #0c1519;
-  --bg-surface: #131f24;
-  --bg-surface-raised: #1a2a30;
-  --bg-input: #0f1a1f;
+  /* Surfaces — deep sea, four depth levels. The ladder is deliberately wide:
+     hierarchy must read from depth alone, before any border does its work.
+     canvas (abyss) → surface (card) → raised (header/chip) → overlay (floating) */
+  --bg-canvas: #0a1013;
+  --bg-surface: #121d22;
+  --bg-surface-raised: #1c2c33;
+  --bg-overlay: #243740;
+  /* Inputs sit *below* their surface — carved in, not stacked on */
+  --bg-input: #0d1619;
 
-  /* Borders */
-  --border-default: #24373e;
+  /* Borders — default for resting edges, strong for raised/overlay edges */
+  --border-default: #223439;
+  --border-strong: #334a52;
   --border-focus: var(--accent);
 
   /* Text — sea-foam white range */
@@ -44,8 +49,9 @@
   --text-on-accent: #04211e;
   --opacity-disabled: 0.45;
 
-  /* Depth and light — floating things get shadows, living signals get glows. Nothing improvised beyond these two */
-  --shadow-raised: 0 4px 16px rgba(0, 0, 0, 0.35);
+  /* Depth and light — floating things get shadows, living signals get glows. Nothing improvised beyond these two.
+     The shadow is layered (contact + ambient) so floating surfaces separate from the abyss */
+  --shadow-raised: 0 2px 4px rgba(0, 0, 0, 0.35), 0 12px 32px rgba(0, 0, 0, 0.5);
   --glow-accent: 0 0 12px rgba(47, 201, 190, 0.35);
 }
 
@@ -137,6 +143,10 @@
 
   --font-ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Pretendard', sans-serif;
   --font-mono: 'SF Mono', 'JetBrains Mono', ui-monospace, monospace;
+  /* Display face — the control-room console identity: the mono, used large.
+     Exactly ONE display moment exists in the whole app (currently: the dashboard hero).
+     Pair with --tracking-tight and --font-weight-semibold; never use for body text */
+  --font-display: var(--font-mono);
 
   /* ── Layout rules — placement uses only these tokens ── */
   /* Horizontal page padding (dashboard, etc.) */
@@ -167,6 +177,19 @@
   }
   to {
     background-position: -200% 0;
+  }
+}
+
+/* Reduced motion — kill sustained/entrance animation globally; state changes become instant.
+   Aliveness expressions (pulse, shimmer, spin) degrade to static without per-component work */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
