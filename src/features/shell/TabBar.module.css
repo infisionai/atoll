@@ -4,7 +4,9 @@
   gap: 2px;
   height: 36px;
   padding: var(--space-1) var(--space-2) 0;
-  background: var(--bg-input);
+  /* Chrome sits one depth above the canvas — the active tab then reads as a
+     window cut into the abyss */
+  background: var(--bg-surface);
   border-bottom: 1px solid var(--border-default);
   user-select: none;
   overflow-x: auto;
@@ -32,10 +34,12 @@
   color: var(--text-secondary);
 }
 
-/* Active tab — visually continuous with the canvas surface */
+/* Active tab — visually continuous with the canvas surface.
+   Emphasis by weight and color, never by size */
 .tab[data-active='true'] {
   background: var(--bg-canvas);
   color: var(--text-primary);
+  font-weight: var(--font-weight-medium);
 }
 
 .homeIcon {
