@@ -21,9 +21,22 @@
   box-shadow: var(--glow-accent);
 }
 
-/* Connected — a living signal. (Placement classes apply absolute, so this anchors the ::after) */
+/* Connected — a living signal. (Placement classes apply absolute, so this anchors the ::after)
+   The moment a connection lands, the port answers with one glow pulse */
 .port[data-connected='true'] {
   border-color: var(--accent);
+  animation: connectPulse 0.45s var(--ease-out);
+}
+
+@keyframes connectPulse {
+  0% {
+    box-shadow: var(--glow-accent);
+    transform: scale(1.25);
+  }
+  100% {
+    box-shadow: none;
+    transform: scale(1);
+  }
 }
 
 .port[data-connected='true']::after {

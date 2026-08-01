@@ -200,3 +200,28 @@
   color: var(--text-muted);
   opacity: 0.7;
 }
+
+/* Node entrance — appears as a surface, never from nothing. Removal is instant
+   (frequent + often keyboard-driven) */
+.node {
+  animation: nodeIn 0.15s var(--ease-out) backwards;
+}
+
+@keyframes nodeIn {
+  from {
+    opacity: 0;
+    scale: 0.97;
+  }
+}
+
+/* Selection toolbar rises briefly with its content */
+.selectionToolbar {
+  animation: toolbarIn 0.12s var(--ease-out) backwards;
+}
+
+@keyframes toolbarIn {
+  from {
+    opacity: 0;
+    translate: -50% calc(-100% - var(--space-1));
+  }
+}

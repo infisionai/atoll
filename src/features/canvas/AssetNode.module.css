@@ -452,3 +452,32 @@ img.thumb[data-loaded='true'] {
 .modelWrap:hover .fileOpen {
   opacity: 1;
 }
+
+/* The arrival moment — one glow breath on the card, and the result settles
+   into place. Rare + emotional peak: the only place delight is allowed */
+.card[data-arrived='true'] {
+  animation: arriveBreath 1.2s var(--ease-out);
+}
+
+.card[data-arrived='true'] .preview {
+  animation: arriveSettle 0.35s var(--ease-out) backwards;
+}
+
+@keyframes arriveBreath {
+  0% {
+    box-shadow: none;
+  }
+  25% {
+    box-shadow: var(--glow-accent);
+  }
+  100% {
+    box-shadow: none;
+  }
+}
+
+@keyframes arriveSettle {
+  from {
+    opacity: 0;
+    scale: 0.98;
+  }
+}
