@@ -1,4 +1,4 @@
-import { IconGear } from '../../shared/icons'
+import { IconGear, IconPlus } from '../../shared/icons'
 import { useState } from 'react'
 import type { GraphDoc } from '../../ipc/commands'
 import { WorkspaceCard, type WorkspaceMeta } from './WorkspaceCard'
@@ -85,11 +85,20 @@ export function Dashboard({
         <div className={styles.empty}>
           {workspaces.length === 0 ? (
             <>
-              <p className={styles.emptyTitle}>No spaces yet</p>
-              <p className={styles.emptyHint}>Create your first canvas to start a generation flow.</p>
-              <button type="button" className={styles.create} onClick={onCreate}>
-                + New space
+              <button
+                type="button"
+                className={styles.ghostCard}
+                aria-label="Create your first space"
+                onClick={onCreate}
+              >
+                <IconPlus width={20} height={20} />
               </button>
+              <div className={styles.emptyCopy}>
+                <p className={styles.emptyTitle}>No spaces yet</p>
+                <p className={styles.emptyHint}>
+                  Create your first canvas to start a generation flow.
+                </p>
+              </div>
             </>
           ) : (
             <p className={styles.emptyHint}>No spaces match "{query}".</p>

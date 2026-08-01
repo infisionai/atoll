@@ -11,6 +11,8 @@ export const SAMPLE_MEDIA =
 const meta = {
   title: 'Dashboard/WorkspaceThumbnail',
   component: WorkspaceThumbnail,
+  // SAMPLE_MEDIA is shared fixture data, not a story — CSF must skip it
+  excludeStories: ['SAMPLE_MEDIA'],
   decorators: [
     (Story) => (
       <div
