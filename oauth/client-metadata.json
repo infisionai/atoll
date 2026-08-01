@@ -1,5 +1,5 @@
 {
-  "client_id": "https://raw.githubusercontent.com/infisionai/atoll/main/docs/oauth/client-metadata.json",
+  "client_id": "https://infisionai.github.io/atoll/oauth/client-metadata.json",
   "client_name": "Atoll",
   "client_uri": "https://github.com/infisionai/atoll",
   "redirect_uris": ["http://localhost/callback", "http://127.0.0.1/callback"],
