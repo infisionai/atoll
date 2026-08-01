@@ -8,7 +8,7 @@ import {
   IconVolume,
   IconVolumeMute,
 } from '../../shared/icons'
-import { useRef, useState, type PointerEvent } from 'react'
+import { useEffect, useRef, useState, type PointerEvent } from 'react'
 import { Port } from './Port'
 import { StatusBadge } from './StatusBadge'
 import { ModelViewer } from './ModelViewer'
@@ -267,6 +267,20 @@ export function AssetNode({
   const [resizing, setResizing] = useState(false)
   const cardRef = useRef<HTMLElement>(null)
 
+  // The arrival moment — the emotional peak of the app. When generating settles
+  // into media, the card takes one glow breath and the result fades into place
+  const wasGenerating = useRef(!!generating)
+  const [arrived, setArrived] = useState(false)
+  useEffect(() => {
+    const was = wasGenerating.current
+    wasGenerating.current = !!generating
+    if (was && !generating && media) {
+      setArrived(true)
+      const t = window.setTimeout(() => setArrived(false), 1400)
+      return () => window.clearTimeout(t)
+    }
+  }, [generating, media])
+
   const startResize = (e: PointerEvent) => {
     e.preventDefault()
     e.stopPropagation()
@@ -308,6 +322,7 @@ export function AssetNode({
       className={styles.card}
       data-selected={selected}
       data-status={error ? 'error' : generating ? 'generating' : undefined}
+      data-arrived={arrived || undefined}
       style={width !== undefined ? { width } : undefined}
     >
       <header className={styles.header}>

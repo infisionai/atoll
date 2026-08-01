@@ -872,6 +872,14 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(funct
         }
       }}
     >
+      {/* Empty-canvas anchor — a quiet prompt in the abyss, never interactive */}
+      {Object.keys(graph.nodes).length === 0 && (
+        <div className={styles.emptyAnchor} aria-hidden>
+          <span className={styles.emptyAnchorTitle}>drag a model from the library_</span>
+          <span className={styles.emptyAnchorHint}>or ask the agent in the terminal</span>
+        </div>
+      )}
+
       <div
         className={styles.content}
         style={{ transform: `translate(${vp.x}px, ${vp.y}px) scale(${vp.scale})` }}

@@ -22,12 +22,14 @@
   border-radius: calc(var(--radius-xl) - 1px) calc(var(--radius-xl) - 1px) 0 0;
 }
 
-/* MCP provider label — the header shows at a glance whose credits will be spent */
+/* MCP provider label — the header shows at a glance whose credits will be spent.
+   line-height 1 keeps the mono baseline optically centered with the badge and cost pill */
 .mcpProvider {
   margin-left: auto;
   margin-right: var(--space-2);
   font-family: var(--font-mono);
   font-size: var(--text-xs);
+  line-height: 1;
   color: var(--text-muted);
 }
 
