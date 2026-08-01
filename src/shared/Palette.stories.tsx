@@ -3,18 +3,20 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 /** Only token names are listed — the actual colors come from the CSS variables in global.css */
 const GROUPS: Array<{ title: string; tokens: Array<[name: string, usage: string]> }> = [
   {
-    title: 'Surfaces — deep sea',
+    title: 'Surfaces — deep sea, four depths',
     tokens: [
-      ['--bg-canvas', 'Canvas background'],
-      ['--bg-surface', 'Nodes and panels'],
-      ['--bg-surface-raised', 'Floating elements (menus, toolbars)'],
-      ['--bg-input', 'Input field interior'],
+      ['--bg-canvas', 'The abyss — canvas background'],
+      ['--bg-surface', 'Cards, nodes, panels'],
+      ['--bg-surface-raised', 'Raised parts on a surface (headers, chips)'],
+      ['--bg-overlay', 'Floating elements (menus, toolbars, dialogs) — pairs with --shadow-raised'],
+      ['--bg-input', 'Input interior — carved below its surface'],
     ],
   },
   {
     title: 'Borders',
     tokens: [
-      ['--border-default', 'Default border'],
+      ['--border-default', 'Resting edges'],
+      ['--border-strong', 'Raised/overlay edges — pairs with --bg-overlay'],
       ['--border-focus', 'Focus border (= lagoon)'],
     ],
   },

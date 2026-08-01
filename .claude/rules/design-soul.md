@@ -22,7 +22,8 @@ paths:
 **Typography**
 - UI body text is Pretendard (optimized for Korean); numbers, coordinates, credits, and model IDs must use `--font-mono`. The instant a number wobbles in a proportional font, the precision-instrument feel dies.
 - Sizes come only from scale tokens. Try weight and color for emphasis before size.
-- A display moment like the dashboard title may use a typeface with character — but there is exactly one display typeface in the whole app.
+- A display moment like the dashboard title may use a typeface with character — but there is exactly one display typeface in the whole app. **Decided (2026-08): `--font-display` = the mono, used large with `--tracking-tight` — the console identity. No new font assets.**
+- Form hierarchy: labels are `--text-muted`, values are `--text-primary` — a form must never read as one gray mass.
 
 **Motion — breathing and reflexes only**
 - Interaction feedback finishes within `--default-transition-duration` (0.15s). UI slower than the hand is not an instrument.
@@ -31,6 +32,7 @@ paths:
 - Entrances/exits are short with `--ease-out`. No bounce or overshoot — that makes it a toy.
 
 **Depth and light**
+- Four surface depths: `--bg-canvas` (abyss) → `--bg-surface` (cards) → `--bg-surface-raised` (headers/chips on a surface) → `--bg-overlay` (floating). Floating things pair `--bg-overlay` + `--border-strong` + `--shadow-raised`; inputs sit *below* their surface (`--bg-input`).
 - Floating things (toolbars, menus, dialogs) use `--shadow-raised`; living signals use `--glow-accent`. Do not improvise any shadow or glow beyond these two.
 - The canvas background is a plain solid color (`--bg-canvas`) — the dot grid was removed by a deliberate decision. Ask the maintainers before proposing texture again.
 

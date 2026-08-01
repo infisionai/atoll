@@ -2,9 +2,9 @@
   display: inline-flex;
   gap: var(--space-1);
   padding: var(--space-1);
-  border: 1px solid var(--border-default);
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-lg);
-  background: var(--bg-surface-raised);
+  background: var(--bg-overlay);
   box-shadow: var(--shadow-raised);
 }
 

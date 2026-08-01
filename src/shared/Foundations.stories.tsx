@@ -75,6 +75,38 @@ function TypeScale() {
   )
 }
 
+/* ── Display face + text hierarchy rules ── */
+function DisplayAndHierarchy() {
+  return (
+    <Section title="Display face — the console identity. Exactly ONE display moment in the app">
+      <div
+        style={{
+          fontFamily: 'var(--font-display)',
+          fontSize: 'var(--text-4xl)',
+          fontWeight: 'var(--font-weight-semibold)' as never,
+          letterSpacing: 'var(--tracking-tight)',
+          color: 'var(--text-primary)',
+        }}
+      >
+        workspaces_
+      </div>
+      <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+        --font-display (= the mono, used large) · pair with --tracking-tight. Never for body text.
+      </p>
+      <div style={{ display: 'grid', gap: 4, marginTop: 8 }}>
+        <div>
+          <span style={{ color: 'var(--text-muted)', fontSize: 'var(--text-xs)' }}>Aspect Ratio</span>
+          <span style={{ color: 'var(--text-primary)', fontSize: 'var(--text-xs)', marginLeft: 12 }}>16:9</span>
+        </div>
+        <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+          Form hierarchy rule: labels are --text-muted, values are --text-primary — a form must never
+          read as one gray mass. (Three text levels only; no fourth.)
+        </p>
+      </div>
+    </Section>
+  )
+}
+
 /* ── Corner radius ── */
 function RadiusScale() {
   const tokens = ['--radius-sm', '--radius-md', '--radius-lg', '--radius-xl', '--radius-2xl']
@@ -184,6 +216,7 @@ function FoundationsBoard() {
     <div style={{ display: 'grid', gap: 36, maxWidth: 640 }}>
       <SpacingScale />
       <TypeScale />
+      <DisplayAndHierarchy />
       <RadiusScale />
       <LayoutRules />
       <MotionRules />
