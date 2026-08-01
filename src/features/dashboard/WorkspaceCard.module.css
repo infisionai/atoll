@@ -28,11 +28,19 @@
   background: var(--bg-surface);
   overflow: hidden;
   cursor: pointer;
-  transition: border-color var(--default-transition-duration) var(--default-transition-timing-function);
+  transition:
+    border-color var(--default-transition-duration) var(--default-transition-timing-function),
+    background var(--default-transition-duration) var(--default-transition-timing-function);
 }
 
+/* Hover lifts by depth, not by scale — the surface steps one level up */
 .thumbButton:hover {
-  border-color: var(--text-muted);
+  border-color: var(--border-strong);
+  background: var(--bg-surface-raised);
+}
+
+.thumbButton:active {
+  translate: 0 1px;
 }
 
 .thumbButton:focus-visible {
