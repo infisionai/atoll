@@ -24,7 +24,9 @@ pub struct Magnific {
 
 impl Magnific {
     pub fn new(app_data_dir: PathBuf) -> Self {
-        Self { conn: McpConnection::new(CONFIG, app_data_dir) }
+        Self {
+            conn: McpConnection::new(CONFIG, app_data_dir),
+        }
     }
 
     /// Generation submit — converts run-params (the shared frontend format) into images_generate arguments.
@@ -56,7 +58,9 @@ impl Magnific {
 
         // Model slug — strips the catalog prefix (magnific/)
         if let Some(model) = params.get("model").and_then(|v| v.as_str()) {
-            let slug = model.strip_prefix(super::magnific_catalog::ID_PREFIX).unwrap_or(model);
+            let slug = model
+                .strip_prefix(super::magnific_catalog::ID_PREFIX)
+                .unwrap_or(model);
             args.insert("mode".into(), json!(slug));
         }
         // "auto" is the model default — not in the API enum, so omit the argument (the live server rejects it as invalid)
@@ -104,7 +108,9 @@ impl Magnific {
         let mut clip = serde_json::Map::new();
         clip.insert("prompt".into(), json!(prompt));
         if let Some(model) = params.get("model").and_then(|v| v.as_str()) {
-            let slug = model.strip_prefix(super::magnific_catalog::ID_PREFIX).unwrap_or(model);
+            let slug = model
+                .strip_prefix(super::magnific_catalog::ID_PREFIX)
+                .unwrap_or(model);
             clip.insert("slug".into(), json!(slug));
         }
         // duration — the form uses string segments, so convert back to a number (required when slug is set).
@@ -133,7 +139,11 @@ impl Magnific {
             }
         }
         // Start frame — the first medias item (start_image port, max 1)
-        if let Some(m) = params.get("medias").and_then(|v| v.as_array()).and_then(|a| a.first()) {
+        if let Some(m) = params
+            .get("medias")
+            .and_then(|v| v.as_array())
+            .and_then(|a| a.first())
+        {
             let same_provider = m.get("provider").and_then(|v| v.as_str()) == Some(PROVIDER_ID);
             let ident = if same_provider {
                 m.get("value").and_then(|v| v.as_str())
@@ -173,16 +183,25 @@ impl Magnific {
         {
             return Err("estimate-unsupported: the Magnific Auto video model does not support pre-run estimates".into());
         }
-        Ok(("simulate_cost", json!({ "tool": tool, "arguments": arguments })))
+        Ok((
+            "simulate_cost",
+            json!({ "tool": tool, "arguments": arguments }),
+        ))
     }
 
     /// Job status query — creation_status (argument name confirmed against the live server: creationIdentifier)
     pub fn status_call(job_id: &str) -> (&'static str, Value) {
-        ("creation_status", serde_json::json!({ "creationIdentifier": job_id }))
+        (
+            "creation_status",
+            serde_json::json!({ "creationIdentifier": job_id }),
+        )
     }
 
     fn catalog_path(&self) -> std::path::PathBuf {
-        self.conn.app_data_dir().join("catalog").join("magnific.json")
+        self.conn
+            .app_data_dir()
+            .join("catalog")
+            .join("magnific.json")
     }
 
     fn cached_catalog(&self) -> Option<Value> {
@@ -254,7 +273,10 @@ mod tests {
         assert_eq!(args["mode"], "imagen-nano-banana-2-flash"); // prefix stripped
         assert_eq!(args["aspectRatio"], "16:9");
         assert_eq!(args["resolution"], "2k");
-        assert_eq!(args["references"][0], json!({ "type": "image", "identifier": "cr-123" }));
+        assert_eq!(
+            args["references"][0],
+            json!({ "type": "image", "identifier": "cr-123" })
+        );
     }
 
     #[test]
@@ -273,7 +295,10 @@ mod tests {
         let (_, submit) = Magnific::submit_call("image", &params).unwrap();
         assert_eq!(submit["references"][0]["identifier"], "4RNtpok9Aa");
         let (_, est) = Magnific::estimate_call("image", &params).unwrap();
-        assert_eq!(est["arguments"]["references"][0]["identifier"], "4RNtpok9Aa");
+        assert_eq!(
+            est["arguments"]["references"][0]["identifier"],
+            "4RNtpok9Aa"
+        );
     }
 
     #[test]
@@ -300,7 +325,10 @@ mod tests {
             "medias": [{ "value": "fa685029-9201-4592-a152-e9a1c05ae0d4", "role": "image", "url": "https://cdn/h.png", "provider": "higgsfield" }]
         });
         let (_, args) = Magnific::submit_call("video", &params).unwrap();
-        assert_eq!(args["video"]["clips"][0]["keyframes"]["start"]["url"], "https://cdn/h.png");
+        assert_eq!(
+            args["video"]["clips"][0]["keyframes"]["start"]["url"],
+            "https://cdn/h.png"
+        );
     }
 
     #[test]

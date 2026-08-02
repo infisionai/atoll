@@ -75,7 +75,11 @@ fn parse_field(s: &str) -> Option<(String, Value)> {
         return None; // A nested block header like "prompt:"
     }
     // "aspectRatios[10]" → array field
-    if let Some(base) = raw_key.trim().strip_suffix(']').and_then(|k| k.split_once('[')) {
+    if let Some(base) = raw_key
+        .trim()
+        .strip_suffix(']')
+        .and_then(|k| k.split_once('['))
+    {
         let (name, _count) = base;
         // Table formats like "references[1]{type,allowed,limit}" are not handled
         if name.contains('{') {
@@ -175,7 +179,11 @@ pub fn to_model_spec(entry: &Map<String, Value>) -> Option<Value> {
                     .collect()
             })
             .unwrap_or_default();
-        let roles = if roles.is_empty() { vec![json!("image")] } else { roles };
+        let roles = if roles.is_empty() {
+            vec![json!("image")]
+        } else {
+            roles
+        };
         medias.push(json!({ "name": "references", "type": "image", "roles": roles }));
     }
 
@@ -188,7 +196,11 @@ pub fn to_model_spec(entry: &Map<String, Value>) -> Option<Value> {
     }
 
     let gen_time = entry.get("expectedGenerationTime").and_then(|v| v.as_i64());
-    let kind_label = if output_type == "video" { "Video generation" } else { "Text to image" };
+    let kind_label = if output_type == "video" {
+        "Video generation"
+    } else {
+        "Text to image"
+    };
     let description = match gen_time {
         Some(t) => format!("{kind_label} · about {t}s"),
         None => kind_label.to_string(),
@@ -305,7 +317,10 @@ mod tests {
         assert_eq!(spec["output_type"], "video");
         assert_eq!(spec["parameters"][0]["name"], "duration");
         assert_eq!(spec["parameters"][0]["required"], "required");
-        assert_eq!(spec["parameters"][0]["options"], json!(["5", "6", "8", "10"]));
+        assert_eq!(
+            spec["parameters"][0]["options"],
+            json!(["5", "6", "8", "10"])
+        );
         // The FIXTURE's video entry lacks supportsStartFrame → no start-frame port
         assert_eq!(spec["medias"], json!([]));
         let catalog = catalog_from_text(FIXTURE);
@@ -324,7 +339,11 @@ mod tests {
         ]);
         let filtered = filter_unsupported_models(cached);
         assert_eq!(filtered.as_array().unwrap().len(), 1);
-        assert!(!filtered.as_array().unwrap().iter().any(|m| m["id"] == "magnific/auto"));
+        assert!(!filtered
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|m| m["id"] == "magnific/auto"));
         assert!(filtered
             .as_array()
             .unwrap()

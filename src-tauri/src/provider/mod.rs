@@ -59,7 +59,9 @@ impl Provider {
             Provider::Higgsfield(p) => p.conn.connect().await,
             Provider::Magnific(p) => p.conn.connect().await,
             Provider::Kling(p) => p.conn.connect().await,
-            Provider::ElevenLabs(_) => Err("eleven-key-required: enter an ElevenLabs API key".into()),
+            Provider::ElevenLabs(_) => {
+                Err("eleven-key-required: enter an ElevenLabs API key".into())
+            }
         }
     }
 
@@ -79,7 +81,9 @@ impl Provider {
             Provider::Higgsfield(p) => p.conn.tool_call(tool, args).await,
             Provider::Magnific(p) => p.conn.tool_call(tool, args).await,
             Provider::Kling(p) => p.conn.tool_call(tool, args).await,
-            Provider::ElevenLabs(_) => Err("eleven-validation: ElevenLabs has no MCP tool call".into()),
+            Provider::ElevenLabs(_) => {
+                Err("eleven-validation: ElevenLabs has no MCP tool call".into())
+            }
         }
     }
 
@@ -115,7 +119,9 @@ impl Provider {
     ) -> Result<elevenlabs::AudioResult, String> {
         match self {
             Provider::ElevenLabs(provider) => provider.generate(kind, params).await,
-            _ => Err("eleven-validation: native audio generation is only supported by ElevenLabs".into()),
+            _ => Err(
+                "eleven-validation: native audio generation is only supported by ElevenLabs".into(),
+            ),
         }
     }
 
@@ -159,10 +165,12 @@ impl Provider {
                 higgsfield::Higgsfield::submit_tool(kind),
                 serde_json::json!({ "params": higgsfield::Higgsfield::normalize_params(params) }),
             )),
-            Provider::Magnific(_) => magnific::Magnific::submit_call(kind, params)
-                .map(|(t, a)| (t.to_string(), a)),
-            Provider::Kling(_) => kling::Kling::submit_call(kind, params)
-                .map(|(t, a)| (t.to_string(), a)),
+            Provider::Magnific(_) => {
+                magnific::Magnific::submit_call(kind, params).map(|(t, a)| (t.to_string(), a))
+            }
+            Provider::Kling(_) => {
+                kling::Kling::submit_call(kind, params).map(|(t, a)| (t.to_string(), a))
+            }
             Provider::ElevenLabs(_) => {
                 Err("eleven-validation: ElevenLabs uses native synchronous submission".into())
             }
@@ -181,15 +189,14 @@ impl Provider {
                     serde_json::json!({ "params": params }),
                 ))
             }
-            Provider::Magnific(_) => magnific::Magnific::estimate_call(kind, params)
-                .map(|(t, a)| (t.to_string(), a)),
+            Provider::Magnific(_) => {
+                magnific::Magnific::estimate_call(kind, params).map(|(t, a)| (t.to_string(), a))
+            }
             // Kling MCP has no pre-estimate tool. Never work around this via submit.
-            Provider::Kling(_) => kling::Kling::estimate_call(kind, params)
-                .map(|(t, a)| (t.to_string(), a)),
-            Provider::ElevenLabs(_) => Ok((
-                "elevenlabs-local-estimate".into(),
-                params.clone(),
-            )),
+            Provider::Kling(_) => {
+                kling::Kling::estimate_call(kind, params).map(|(t, a)| (t.to_string(), a))
+            }
+            Provider::ElevenLabs(_) => Ok(("elevenlabs-local-estimate".into(), params.clone())),
         }
     }
 
@@ -212,7 +219,6 @@ impl Provider {
             _ => Err("eleven-validation: API keys are only supported by ElevenLabs".into()),
         }
     }
-
 }
 
 #[cfg(test)]
@@ -222,7 +228,8 @@ mod tests {
 
     #[tokio::test]
     async fn existing_provider_status_dispatch_keeps_oauth_contract() {
-        let dir = std::env::temp_dir().join(format!("atoll-provider-dispatch-{}", std::process::id()));
+        let dir =
+            std::env::temp_dir().join(format!("atoll-provider-dispatch-{}", std::process::id()));
         let providers = [
             Provider::Higgsfield(higgsfield::Higgsfield::new(dir.clone())),
             Provider::Magnific(magnific::Magnific::new(dir.clone())),
@@ -231,14 +238,18 @@ mod tests {
         for provider in &providers {
             let status = provider.status().await;
             assert_eq!(status.auth_kind, "oauth");
-            assert_eq!(serde_json::to_value(status).unwrap()["authKind"], json!("oauth"));
+            assert_eq!(
+                serde_json::to_value(status).unwrap()["authKind"],
+                json!("oauth")
+            );
         }
         let _ = std::fs::remove_dir_all(dir);
     }
 
     #[tokio::test]
     async fn native_connect_requires_an_api_key_without_opening_a_browser() {
-        let dir = std::env::temp_dir().join(format!("atoll-elevenlabs-connect-{}", std::process::id()));
+        let dir =
+            std::env::temp_dir().join(format!("atoll-elevenlabs-connect-{}", std::process::id()));
         let provider = Provider::ElevenLabs(elevenlabs::ElevenLabs::new(dir.clone()));
         assert_eq!(
             provider.connect().await.unwrap_err(),
@@ -249,7 +260,8 @@ mod tests {
 
     #[test]
     fn native_status_call_is_an_explicit_error_not_an_empty_mcp_tuple() {
-        let dir = std::env::temp_dir().join(format!("atoll-elevenlabs-status-{}", std::process::id()));
+        let dir =
+            std::env::temp_dir().join(format!("atoll-elevenlabs-status-{}", std::process::id()));
         let provider = Provider::ElevenLabs(elevenlabs::ElevenLabs::new(dir.clone()));
         let error = provider.status_call("job-1").unwrap_err();
         assert!(error.starts_with("eleven-validation"));

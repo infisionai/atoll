@@ -47,7 +47,10 @@ mod tests {
         let key = ApiKey::new("test-api-key-123").unwrap();
         assert!(!format!("{key:?}").contains("test-api-key-123"));
         assert!(!key.to_string().contains("test-api-key-123"));
-        assert_eq!(key.redact("request failed for test-api-key-123"), "request failed for [REDACTED]");
+        assert_eq!(
+            key.redact("request failed for test-api-key-123"),
+            "request failed for [REDACTED]"
+        );
     }
 
     #[test]

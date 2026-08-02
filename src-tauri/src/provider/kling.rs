@@ -273,7 +273,11 @@ mod tests {
         assert_eq!(tool, "text_to_image");
         assert_eq!(payload["model"], "gemini-3.1-flash-image");
         assert_eq!(payload["arguments"][0]["value"], "1");
-        assert!(payload["arguments"].as_array().unwrap().iter().all(|item| item["value"].is_string()));
+        assert!(payload["arguments"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|item| item["value"].is_string()));
         assert!(payload["taskTraceId"].as_str().unwrap().contains('-'));
     }
 

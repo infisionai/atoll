@@ -75,14 +75,16 @@ mod tests {
 
     #[test]
     fn parses_the_redacted_subscription_fixture() {
-        let value: Value = serde_json::from_str(include_str!("fixtures/eleven-subscription.min.json")).unwrap();
+        let value: Value =
+            serde_json::from_str(include_str!("fixtures/eleven-subscription.min.json")).unwrap();
         let balance = parse_subscription(&value).unwrap();
         assert_eq!(balance.remaining_credits, 8_800.0);
     }
 
     #[test]
     fn parses_only_the_voice_contract_from_the_fixture() {
-        let value: Value = serde_json::from_str(include_str!("fixtures/eleven-voices.min.json")).unwrap();
+        let value: Value =
+            serde_json::from_str(include_str!("fixtures/eleven-voices.min.json")).unwrap();
         let voices = parse_voices(&value).unwrap();
         assert_eq!(voices.len(), 3);
         assert_eq!(voices[0].voice_id, "voice-fictitious-001");
@@ -95,5 +97,4 @@ mod tests {
         let error = parse_subscription(&serde_json::json!({"credits": 10})).unwrap_err();
         assert!(error.starts_with("eleven-subscription-invalid"));
     }
-
 }

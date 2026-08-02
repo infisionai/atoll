@@ -81,7 +81,9 @@ impl ElevenLabs {
     }
 
     fn voices_cache_path(&self) -> PathBuf {
-        self.app_data_dir.join("catalog").join("elevenlabs-voices.json")
+        self.app_data_dir
+            .join("catalog")
+            .join("elevenlabs-voices.json")
     }
 
     fn load_api_key(&self) -> Option<ApiKey> {
@@ -120,7 +122,9 @@ impl ElevenLabs {
                 .recursive(true)
                 .mode(0o700)
                 .create(parent)
-                .map_err(|_| "eleven-validation: unable to create credentials directory".to_string())?;
+                .map_err(|_| {
+                    "eleven-validation: unable to create credentials directory".to_string()
+                })?;
         }
         #[cfg(not(unix))]
         std::fs::create_dir_all(parent)
@@ -284,11 +288,11 @@ impl ElevenLabs {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::Value;
     use std::io::{Read, Write};
     use std::net::TcpListener;
-    use serde_json::Value;
-    use std::thread::JoinHandle;
     use std::os::unix::fs::PermissionsExt;
+    use std::thread::JoinHandle;
 
     struct FakeHttpServer {
         base_url: String,
@@ -341,7 +345,10 @@ mod tests {
         let path = dir.join("creds/elevenlabs.json");
         let saved: Value = serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
         assert_eq!(saved["api_key"], "fake-round-trip-key");
-        assert_eq!(std::fs::metadata(&path).unwrap().permissions().mode() & 0o777, 0o600);
+        assert_eq!(
+            std::fs::metadata(&path).unwrap().permissions().mode() & 0o777,
+            0o600
+        );
         let loaded = ElevenLabs::with_base_url(dir.clone(), "http://127.0.0.1:1");
         assert_eq!(loaded.status_blocking().state, "connected");
         let _ = std::fs::remove_dir_all(dir);
@@ -387,7 +394,9 @@ mod tests {
         assert_eq!(status.auth_kind, "api_key");
         assert_eq!(status.balance, Some(8_800.0));
         assert!(dir.join("creds/elevenlabs.json").exists());
-        assert!(!serde_json::to_string(&status).unwrap().contains("fake-provider-key"));
+        assert!(!serde_json::to_string(&status)
+            .unwrap()
+            .contains("fake-provider-key"));
         let _ = std::fs::remove_dir_all(dir);
     }
 
@@ -411,7 +420,9 @@ mod tests {
         let dir = test_dir("disconnect");
         let _ = std::fs::remove_dir_all(&dir);
         let provider = ElevenLabs::with_base_url(dir.clone(), "http://127.0.0.1:1");
-        provider.save_api_key(&ApiKey::new("fake-disconnect-key").unwrap()).unwrap();
+        provider
+            .save_api_key(&ApiKey::new("fake-disconnect-key").unwrap())
+            .unwrap();
         provider.disconnect().await.unwrap();
         assert!(!dir.join("creds/elevenlabs.json").exists());
         assert_eq!(provider.status().await.state, "disconnected");

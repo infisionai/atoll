@@ -118,14 +118,28 @@ pub fn classify_status(v: &Value) -> JobPhase {
     }
 
     let is_failed = |s: &str| {
-        ["failed", "error", "cancel", "rejected", "nsfw", "ip_detected"]
-            .iter()
-            .any(|m| s.contains(m))
+        [
+            "failed",
+            "error",
+            "cancel",
+            "rejected",
+            "nsfw",
+            "ip_detected",
+        ]
+        .iter()
+        .any(|m| s.contains(m))
     };
     let is_done = |s: &str| {
-        ["completed", "complete", "succeeded", "success", "done", "finished"]
-            .iter()
-            .any(|m| s.contains(m))
+        [
+            "completed",
+            "complete",
+            "succeeded",
+            "success",
+            "done",
+            "finished",
+        ]
+        .iter()
+        .any(|m| s.contains(m))
     };
 
     if statuses.iter().any(|s| is_failed(s)) {
@@ -148,7 +162,13 @@ pub fn poll_after_seconds(v: &Value) -> u64 {
 /// Extract the failure reason — searches the top level and the `generation` object
 pub fn failure_message(v: &Value) -> String {
     fn from(x: &Value) -> Option<String> {
-        for key in ["error", "message", "failure_reason", "failureReason", "reason"] {
+        for key in [
+            "error",
+            "message",
+            "failure_reason",
+            "failureReason",
+            "reason",
+        ] {
             match x.get(key) {
                 Some(Value::String(s)) if !s.is_empty() => return Some(s.clone()),
                 Some(Value::Object(o)) => {
@@ -182,9 +202,14 @@ mod tests {
     #[test]
     fn extract_job_ids_magnific_creations() {
         // Magnific: creation-identifier family of keys
-        assert_eq!(extract_job_ids(&json!({"creationIdentifier": "cr-1"})), vec!["cr-1"]);
         assert_eq!(
-            extract_job_ids(&json!({"creations": [{"identifier": "cr-a"}, {"identifier": "cr-b"}]})),
+            extract_job_ids(&json!({"creationIdentifier": "cr-1"})),
+            vec!["cr-1"]
+        );
+        assert_eq!(
+            extract_job_ids(
+                &json!({"creations": [{"identifier": "cr-a"}, {"identifier": "cr-b"}]})
+            ),
             vec!["cr-a", "cr-b"]
         );
     }
@@ -196,7 +221,10 @@ mod tests {
             extract_job_ids(&json!({"jobs": [{"id": "a"}, {"job_id": "b"}]})),
             vec!["a", "b"]
         );
-        assert_eq!(extract_job_ids(&json!({"job_ids": ["x", "y"]})), vec!["x", "y"]);
+        assert_eq!(
+            extract_job_ids(&json!({"job_ids": ["x", "y"]})),
+            vec!["x", "y"]
+        );
         assert!(extract_job_ids(&json!({"foo": 1})).is_empty());
     }
 
@@ -222,10 +250,22 @@ mod tests {
 
     #[test]
     fn classify_status_terminal_detection() {
-        assert_eq!(classify_status(&json!({"status": "completed"})), JobPhase::Done);
-        assert_eq!(classify_status(&json!({"state": "SUCCESS"})), JobPhase::Done);
-        assert_eq!(classify_status(&json!({"status": "failed"})), JobPhase::Failed);
-        assert_eq!(classify_status(&json!({"status": "queued"})), JobPhase::Running);
+        assert_eq!(
+            classify_status(&json!({"status": "completed"})),
+            JobPhase::Done
+        );
+        assert_eq!(
+            classify_status(&json!({"state": "SUCCESS"})),
+            JobPhase::Done
+        );
+        assert_eq!(
+            classify_status(&json!({"status": "failed"})),
+            JobPhase::Failed
+        );
+        assert_eq!(
+            classify_status(&json!({"status": "queued"})),
+            JobPhase::Running
+        );
         assert_eq!(classify_status(&json!({})), JobPhase::Running);
     }
 
@@ -233,7 +273,9 @@ mod tests {
     fn classify_status_nested_generation() {
         // Real job_status response shape
         assert_eq!(
-            classify_status(&json!({"generation": {"status": "completed"}, "poll_after_seconds": 3})),
+            classify_status(
+                &json!({"generation": {"status": "completed"}, "poll_after_seconds": 3})
+            ),
             JobPhase::Done
         );
         assert_eq!(
@@ -282,7 +324,9 @@ mod tests {
         );
         // Magnific creation_status shape as verified against the live server (camelCase)
         assert_eq!(
-            failure_message(&json!({"creationIdentifier": "c", "status": "failed", "failureReason": "NSFW: Content detected"})),
+            failure_message(
+                &json!({"creationIdentifier": "c", "status": "failed", "failureReason": "NSFW: Content detected"})
+            ),
             "NSFW: Content detected"
         );
         assert_eq!(
