@@ -21,7 +21,7 @@ Magnific MCP를 사용하려면 **로그인하기 전에 Premium 플랜이 필�
 - 검증된 브라우저 실행 흐름을 위해 macOS에서 실행 중인 Atoll
 
 ::: warning
-Windows에서 공급자 OAuth 연결은 검증되지 않았습니다. 현재 연결 계층은 브라우저를 실행할 때 macOS의 `open` 명령을 호출합니다.
+Windows에서 Provider OAuth 연결은 검증되지 않았습니다. 현재 연결 계층은 브라우저를 실행할 때 macOS의 `open` 명령을 호출합니다.
 :::
 
 ## 단계
@@ -35,7 +35,7 @@ Windows에서 공급자 OAuth 연결은 검증되지 않았습니다. 현재 연
 연결은 PKCE와 로컬 콜백을 사용하는 OAuth로 진행됩니다. Magnific 계정은 Higgsfield 및 Kling 계정과 독립적입니다.
 
 ::: warning
-공급자 크레딧이 소모됩니다. 선택한 모델이 지원하는 경우 제출하기 전에 제공되는 실행 전 견적을 확인하세요.
+Provider 크레딧이 소모됩니다. 선택한 모델이 지원하는 경우 제출하기 전에 제공되는 실행 전 견적을 확인하세요.
 :::
 
 ## 확인
@@ -47,7 +47,7 @@ Windows에서 공급자 OAuth 연결은 검증되지 않았습니다. 현재 연
 - 잔액은 Magnific의 `account_balance` 작업을 통해 조회되며, 계정에서 제공할 수 있을 때 Settings와 캔버스 잔액 칩에 표시됩니다.
 - 이미지 모델은 참조에 이미지 생성 식별자를 사용합니다.
 - 동영상 생성은 클립 하나로 `video_generate`에 직접 전송됩니다. Atoll은 여러 클립을 사용하는 `video_plan` 경로를 사용하지 않습니다.
-- 동영상 시작 프레임은 에셋 URL 또는 생성 식별자로 나타낼 수 있습니다. 공급자 간 결과는 원격 URL로 전달됩니다.
+- 동영상 시작 프레임은 에셋 URL 또는 생성 식별자로 나타낼 수 있습니다. Provider 간 결과는 원격 URL로 전달됩니다.
 - 서버가 실행 시점에 실행 모델을 고르는 Auto 계열 항목은 Atoll 카탈로그에서 제외됩니다. 카탈로그에 표시되는 모든 Magnific 모델은 실행 전 `$` 견적을 지원합니다.
 
 ## 문제 해결
@@ -58,7 +58,7 @@ Premium MCP 액세스가 활성 상태인지 확인하세요. 새로 구매하�
 
 ### 연결이 만료되었습니다
 
-Magnific 공급자 카드에서 **Reconnect**를 선택하고 OAuth를 다시 완료하세요. 토큰 갱신 실패는 세션 만료로 표시되며 새 로그인이 필요합니다.
+Magnific Provider 카드에서 **Reconnect**를 선택하고 OAuth를 다시 완료하세요. 토큰 갱신 실패는 세션 만료로 표시되며 새 로그인이 필요합니다.
 
 ### 잔액이 누락되었습니다
 
@@ -68,6 +68,6 @@ Magnific 공급자 카드에서 **Reconnect**를 선택하고 OAuth를 다시 �
 
 ## 다음 단계
 
-- [공급자 개요](/ko/providers/)
+- [Provider 개요](/ko/providers/)
 - [Higgsfield 연결](/ko/providers/higgsfield)
 - [Kling 연결](/ko/providers/kling)

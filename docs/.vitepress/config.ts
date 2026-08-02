@@ -51,9 +51,9 @@ const koSidebar = [
     items: [{ text: '개요', link: '/ko/concepts/' }],
   },
   {
-    text: '공급자',
+    text: 'Provider',
     items: [
-      { text: '공급자 개요', link: '/ko/providers/' },
+      { text: 'Provider 개요', link: '/ko/providers/' },
       { text: 'Higgsfield 연결', link: '/ko/providers/higgsfield' },
       { text: 'Magnific 연결', link: '/ko/providers/magnific' },
       { text: 'Kling 연결', link: '/ko/providers/kling' },
@@ -111,7 +111,7 @@ export default defineConfig({
       themeConfig: {
         nav: [
           { text: '가이드', link: '/ko/getting-started/first-workflow' },
-          { text: '공급자', link: '/ko/providers/' },
+          { text: 'Provider', link: '/ko/providers/' },
           { text: '레퍼런스', link: '/ko/reference/mcp-tools' },
           {
             text: '다운로드',

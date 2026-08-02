@@ -20,7 +20,7 @@ GitHub Releases는 Atoll의 유일한 공식 배포 채널입니다:
 
 - Windows 컴퓨터
 - 설치 프로그램을 실행할 수 있는 권한
-- 아래 Windows OAuth 제한이 적용되지 않을 때 공급자에 로그인할 브라우저
+- 아래 Windows OAuth 제한이 적용되지 않을 때 Provider에 로그인할 브라우저
 
 ## 단계
 
@@ -40,7 +40,7 @@ GitHub Releases는 Atoll의 유일한 공식 배포 채널입니다:
 
 ## 확인
 
-Atoll이 열리고 대시보드에 **Workspaces**가 표시되면 설치가 완료된 것입니다. 대시보드가 보인다는 것은 앱이 설치되었다는 뜻이며, Windows에서 공급자 OAuth가 작동한다는 뜻은 아닙니다.
+Atoll이 열리고 대시보드에 **Workspaces**가 표시되면 설치가 완료된 것입니다. 대시보드가 보인다는 것은 앱이 설치되었다는 뜻이며, Windows에서 Provider OAuth가 작동한다는 뜻은 아닙니다.
 
 ## 문제 해결
 
@@ -50,14 +50,14 @@ Atoll이 열리고 대시보드에 **Workspaces**가 표시되면 설치가 완�
 
 ### Atoll은 데이터를 어디에 저장하나요?
 
-Atoll의 애플리케이션 데이터는 `%APPDATA%\infision.atoll\` 아래에 저장됩니다. 공급자 인증 정보는 JSON 파일로 로컬에 저장되며(Unix에서는 파일 모드 0600), 앱 데이터 디렉터리에 있습니다. 생성된 미디어는 해당 디렉터리 아래 앱의 로컬 `media` 캐시에 보관됩니다.
+Atoll의 애플리케이션 데이터는 `%APPDATA%\infision.atoll\` 아래에 저장됩니다. Provider 인증 정보는 JSON 파일로 로컬에 저장되며(Unix에서는 파일 모드 0600), 앱 데이터 디렉터리에 있습니다. 생성된 미디어는 해당 디렉터리 아래 앱의 로컬 `media` 캐시에 보관됩니다.
 
 ## 알려진 제한 사항
 
-Windows에서 공급자 OAuth 연결은 아직 검증되지 않았습니다. 현재 연결 구현은 OAuth 브라우저 플로를 시작할 때 macOS의 `open` 명령을 호출하므로, **Settings > Provider Connections > Connect**가 Windows에서 완료된다고 가정하지 마세요. Windows 설치 프로그램으로 대시보드를 열 수는 있지만, Windows에서 공급자가 연결된 워크플로는 아직 검증되지 않았습니다.
+Windows에서 Provider OAuth 연결은 아직 검증되지 않았습니다. 현재 연결 구현은 OAuth 브라우저 플로를 시작할 때 macOS의 `open` 명령을 호출하므로, **Settings > Provider Connections > Connect**가 Windows에서 완료된다고 가정하지 마세요. Windows 설치 프로그램으로 대시보드를 열 수는 있지만, Windows에서 Provider가 연결된 워크플로는 아직 검증되지 않았습니다.
 
 에이전트 터미널도 아직 Windows에서 동작하지 않습니다. Atoll은 에이전트 CLI를 Unix 로그인 셸(`$SHELL -l -c`, 폴백 `/bin/zsh`)로 실행하는데, 일반적인 Windows 환경에는 이 셸이 없습니다.
 
 ## 다음 단계
 
-공급자 연결 환경이 지원되는 경우 [첫 워크플로](/ko/getting-started/first-workflow)를 계속 진행합니다. Windows에서 공급자 OAuth를 사용하려면 이 경로에 의존하기 전에 위의 제한 사항을 확인하세요.
+Provider 연결 환경이 지원되는 경우 [첫 워크플로](/ko/getting-started/first-workflow)를 계속 진행합니다. Windows에서 Provider OAuth를 사용하려면 이 경로에 의존하기 전에 위의 제한 사항을 확인하세요.
