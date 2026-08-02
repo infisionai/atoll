@@ -16,7 +16,7 @@ description: 공식 GitHub Release에서 서명되지 않은 Atoll macOS 앱을 
 GitHub Releases는 Atoll의 유일한 공식 배포 채널입니다:
 <https://github.com/infisionai/atoll/releases>.
 
-## 사전 요구 사항
+## 사전 준비
 
 - Apple Silicon 또는 Intel 프로세서가 탑재된 Mac
 - 애플리케이션을 `/Applications`에 복사할 수 있는 권한

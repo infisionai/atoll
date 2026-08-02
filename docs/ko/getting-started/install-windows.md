@@ -16,7 +16,7 @@ description: 공식 GitHub Release에서 Atoll Windows 설치 프로그램을 �
 GitHub Releases는 Atoll의 유일한 공식 배포 채널입니다:
 <https://github.com/infisionai/atoll/releases>.
 
-## 사전 요구 사항
+## 사전 준비
 
 - Windows 컴퓨터
 - 설치 프로그램을 실행할 수 있는 권한

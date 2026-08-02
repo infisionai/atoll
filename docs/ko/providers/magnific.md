@@ -1,13 +1,13 @@
 ---
 title: Magnific 연결
-description: Premium MCP 액세스로 Magnific를 Atoll에 연결하고 이미지 또는 단일 클립 동영상을 생성합니다.
+description: Premium MCP 액세스로 Magnific을 Atoll에 연결하고 이미지 또는 단일 클립 동영상을 생성합니다.
 ---
 
 # Magnific 연결
 
-Magnific는 Atoll에서 이미지와 동영상 생성을 제공합니다. MCP 연결에는 Premium 플랜이 필요하며, 실시간 카탈로그에서 사용 가능한 모델과 매개변수를 제공합니다.
+Magnific은 Atoll에서 이미지와 동영상 생성을 담당합니다. MCP 연결에는 Premium 플랜이 필요하고, 사용 가능한 모델과 매개변수는 실시간 카탈로그가 알려 줍니다.
 
-## 결과
+## 목표
 
 설정을 마치면 Premium MCP 연결을 통해 Magnific에서 이미지와 단일 클립 동영상을 생성할 수 있습니다. 앱에서 계정 잔액을 새로 고치고, 실행 전 견적을 지원하는 모델에 견적을 표시할 수 있습니다.
 
@@ -28,7 +28,7 @@ Windows에서 Provider OAuth 연결은 검증되지 않았습니다. 현재 연�
 
 1. Magnific Premium 플랜이 활성 상태인지 확인합니다.
 2. **Settings → Provider Connections**를 엽니다.
-3. **Magnific**를 찾아 **Connect**를 선택합니다.
+3. **Magnific**을 찾아 **Connect**를 선택합니다.
 4. 브라우저에서 로그인 및 동의 절차를 완료합니다.
 5. 브라우저에 로그인이 완료되었다는 메시지가 표시되면 Atoll로 돌아옵니다.
 
@@ -42,7 +42,7 @@ Provider 크레딧이 소모됩니다. 선택한 모델이 지원하는 경우 �
 
 연결한 후 다음을 확인할 수 있습니다.
 
-- Provider Connections에 Magnific가 인증된 계정 정보와 함께 **Connected**로 표시됩니다(정보를 사용할 수 있는 경우).
+- Provider Connections에 Magnific이 인증된 계정 정보와 함께 **Connected**로 표시됩니다(정보를 사용할 수 있는 경우).
 - Atoll은 `images_models_list`와 `video_models_list`에서 실시간 카탈로그를 불러와 캐시합니다. 모델 이름은 이 페이지에 옮기지 않았으며, 실시간 카탈로그가 기준입니다.
 - 잔액은 Magnific의 `account_balance` 작업을 통해 조회되며, 계정에서 제공할 수 있을 때 Settings와 캔버스 잔액 칩에 표시됩니다.
 - 이미지 모델은 참조에 이미지 생성 식별자를 사용합니다.
@@ -52,19 +52,19 @@ Provider 크레딧이 소모됩니다. 선택한 모델이 지원하는 경우 �
 
 ## 문제 해결
 
-### 로그인 또는 잔액 조회가 거부됩니다
+### 로그인 또는 잔액 조회가 거부되는 경우
 
 Premium MCP 액세스가 활성 상태인지 확인하세요. 새로 구매하거나 업그레이드한 후에는 플랜 변경 사항이 전파될 때까지 기다렸다가 다시 시도하세요. Premium 전용 잔액 작업이 플랜 제한을 반환하는 동안에도 Atoll에는 연결 상태가 표시될 수 있습니다.
 
-### 연결이 만료되었습니다
+### 연결이 만료된 경우
 
 Magnific Provider 카드에서 **Reconnect**를 선택하고 OAuth를 다시 완료하세요. 토큰 갱신 실패는 세션 만료로 표시되며 새 로그인이 필요합니다.
 
-### 잔액이 누락되었습니다
+### 잔액이 표시되지 않는 경우
 
 **Refresh balance**를 선택하세요. 계정이 Premium이 아니면 플랜을 업그레이드하고 변경 사항이 전파될 때까지 잔액 조회를 사용할 수 없을 수 있습니다.
 
-연결, 자격 증명, 콜백을 전반적으로 확인하려면 [문제 해결](/ko/help/troubleshooting)을 참고하세요.
+연결, 인증 정보, 콜백을 전반적으로 확인하려면 [문제 해결](/ko/help/troubleshooting)을 참고하세요.
 
 ## 다음 단계
 
