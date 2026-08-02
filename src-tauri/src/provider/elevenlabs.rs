@@ -2,6 +2,10 @@ use super::connection::ProviderStatusDto;
 use super::elevenlabs_api::{SubscriptionBalance, VoiceSummary};
 use super::elevenlabs_catalog;
 use super::elevenlabs_client::{ElevenLabsClient, DEFAULT_BASE_URL};
+use super::elevenlabs_generation_client::ElevenLabsGenerationClient;
+use super::elevenlabs_requests::{
+    build_music_request, build_sfx_request, build_tts_request, output_extension,
+};
 use super::secrets::ApiKey;
 use serde::{Deserialize, Serialize};
 use std::io::Write;
@@ -21,10 +25,16 @@ struct StoredCredentials {
 pub struct ElevenLabs {
     app_data_dir: PathBuf,
     api: ElevenLabsClient,
+    generation: ElevenLabsGenerationClient,
     api_key: Mutex<Option<ApiKey>>,
     balance: Mutex<Option<f64>>,
     voices: Mutex<Option<Vec<VoiceSummary>>>,
     catalog_checked: Mutex<bool>,
+}
+
+pub struct AudioResult {
+    pub bytes: Vec<u8>,
+    pub extension: &'static str,
 }
 
 impl ElevenLabs {
@@ -37,6 +47,7 @@ impl ElevenLabs {
         let provider = Self {
             app_data_dir,
             api: ElevenLabsClient::with_base_url(base_url.clone()),
+            generation: ElevenLabsGenerationClient::with_base_url(base_url),
             api_key: Mutex::new(None),
             balance: Mutex::new(None),
             voices: Mutex::new(None),
@@ -209,6 +220,49 @@ impl ElevenLabs {
         Ok(elevenlabs_catalog::catalog(&fallback.unwrap_or_default()))
     }
 
+    pub async fn generate(
+        &self,
+        kind: &str,
+        params: &serde_json::Value,
+    ) -> Result<AudioResult, String> {
+        if kind != "audio" {
+            return Err(format!(
+                "eleven-validation: ElevenLabs generation kind must be audio, got {kind}"
+            ));
+        }
+        let key = self
+            .api_key
+            .lock()
+            .await
+            .clone()
+            .ok_or_else(|| "eleven-key-required: connect ElevenLabs first".to_string())?;
+        let model = params
+            .get("model")
+            .and_then(serde_json::Value::as_str)
+            .ok_or("eleven-validation: model is required")?;
+        let parsed = elevenlabs_catalog::parse_model_ref(model)?;
+        let (bytes, format) = match parsed.tool {
+            elevenlabs_catalog::ElevenTool::Tts => {
+                let call = build_tts_request(params)?;
+                let format = call.output_format.clone();
+                (self.generation.generate_tts(&key, &call).await?, format)
+            }
+            elevenlabs_catalog::ElevenTool::Music => {
+                let call = build_music_request(params)?;
+                let format = call.output_format.clone();
+                (self.generation.generate_music(&key, &call).await?, format)
+            }
+            elevenlabs_catalog::ElevenTool::Sfx => {
+                let call = build_sfx_request(params)?;
+                let format = call.output_format.clone();
+                (self.generation.generate_sfx(&key, &call).await?, format)
+            }
+        };
+        Ok(AudioResult {
+            bytes,
+            extension: output_extension(&format),
+        })
+    }
 }
 
 #[cfg(test)]

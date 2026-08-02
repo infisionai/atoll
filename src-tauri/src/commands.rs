@@ -4,6 +4,8 @@
 use crate::provider::connection::ProviderStatusDto;
 use crate::provider::Providers;
 use crate::store::{GraphDoc, SqliteStore, WorkspaceMeta};
+use rand::RngCore;
+use std::sync::Arc;
 use std::sync::Mutex;
 use tauri::{AppHandle, Emitter, Manager, State};
 
@@ -87,6 +89,49 @@ pub async fn submit_generation(
     let mut params = params;
     enrich_media_urls(&store, &mut params);
     p.prepare_params(&mut params).await?;
+
+    if p.is_native() {
+        if kind != "audio" {
+            return Err("eleven-validation: ElevenLabs generation kind must be audio".into());
+        }
+        let job_id = uuid_v7();
+        let payload = serde_json::json!({
+            "provider": provider_id,
+            "model": params.get("model"),
+            "status": "running",
+        });
+        {
+            let s = store.0.lock().unwrap();
+            s.insert_job(
+                &job_id,
+                &workspace_id,
+                &node_id,
+                "running",
+                &payload.to_string(),
+                &provider_id,
+            )?;
+        }
+        emit_job(
+            &app,
+            &job_id,
+            &workspace_id,
+            &node_id,
+            "running",
+            vec![],
+            None,
+            None,
+        );
+        spawn_native_generation(
+            app.clone(),
+            Arc::clone(p),
+            job_id.clone(),
+            workspace_id,
+            node_id,
+            params,
+        );
+        return Ok(serde_json::json!({ "jobIds": [job_id] }));
+    }
+
     let (tool, args) = p.submit_call(&kind, &params)?;
     let payload = p.submit_tool_call(&tool, args).await?;
 
@@ -196,6 +241,10 @@ pub fn spawn_job_poll(
     node_id: String,
     provider_id: String,
 ) {
+    if provider_id == crate::provider::elevenlabs::PROVIDER_ID {
+        log::error!("ElevenLabs jobs are synchronous and must not start a poll worker: {job_id}");
+        return;
+    }
     tauri::async_runtime::spawn(async move {
         use crate::provider::jobs::{classify_status, extract_urls, failure_message, poll_after_seconds, JobPhase};
         let started = std::time::Instant::now();
@@ -222,7 +271,28 @@ pub fn spawn_job_poll(
                     break;
                 }
             };
-            let (tool, args) = p.status_call(&job_id);
+            let (tool, args) = match p.status_call(&job_id) {
+                Ok(call) => call,
+                Err(error) => {
+                    update_job_row(
+                        &app,
+                        &job_id,
+                        "failed",
+                        &serde_json::json!({"error": error}),
+                    );
+                    emit_job(
+                        &app,
+                        &job_id,
+                        &workspace_id,
+                        &node_id,
+                        "failed",
+                        vec![],
+                        None,
+                        Some(error),
+                    );
+                    break;
+                }
+            };
             let result = p.poll_tool_call(tool, args).await;
 
             match result {
@@ -267,6 +337,183 @@ pub fn spawn_job_poll(
             }
         }
     });
+}
+
+fn spawn_native_generation(
+    app: AppHandle,
+    provider: Arc<crate::provider::Provider>,
+    job_id: String,
+    workspace_id: String,
+    node_id: String,
+    params: serde_json::Value,
+) {
+    tauri::async_runtime::spawn(async move {
+        match provider.generate_audio("audio", &params).await {
+            Ok(result) => {
+                match write_native_media(&app, &job_id, &result.bytes, result.extension) {
+                    Ok(path) => {
+                        let payload = serde_json::json!({
+                            "provider": crate::provider::elevenlabs::PROVIDER_ID,
+                            "result": "local",
+                            "output_format": params.get("output_format"),
+                        });
+                        update_job_row(&app, &job_id, "done", &payload);
+                        let media_recorded = app
+                            .try_state::<AppState>()
+                            .map(|state| {
+                                state
+                                    .0
+                                    .lock()
+                                    .unwrap()
+                                    .set_job_media(&job_id, &path)
+                                    .is_ok()
+                            })
+                            .unwrap_or(false);
+                        if !media_recorded {
+                            finish_native_failure(
+                                &app,
+                                &job_id,
+                                &workspace_id,
+                                &node_id,
+                                "eleven-cache: unable to record the local result path".into(),
+                            );
+                            return;
+                        }
+                        emit_job(
+                            &app,
+                            &job_id,
+                            &workspace_id,
+                            &node_id,
+                            "done",
+                            vec![],
+                            Some(path),
+                            None,
+                        );
+                    }
+                    Err(error) => {
+                        finish_native_failure(&app, &job_id, &workspace_id, &node_id, error)
+                    }
+                }
+            }
+            Err(error) => finish_native_failure(&app, &job_id, &workspace_id, &node_id, error),
+        }
+    });
+}
+
+fn finish_native_failure(
+    app: &AppHandle,
+    job_id: &str,
+    workspace_id: &str,
+    node_id: &str,
+    error: String,
+) {
+    update_job_row(
+        app,
+        job_id,
+        "failed",
+        &serde_json::json!({"error": error.clone()}),
+    );
+    emit_job(
+        app,
+        job_id,
+        workspace_id,
+        node_id,
+        "failed",
+        vec![],
+        None,
+        Some(error),
+    );
+}
+
+fn write_native_media(
+    app: &AppHandle,
+    job_id: &str,
+    bytes: &[u8],
+    extension: &str,
+) -> Result<String, String> {
+    let directory = app
+        .path()
+        .app_data_dir()
+        .map_err(|error| format!("eleven-cache: unable to locate media cache: {error}"))?
+        .join("media");
+    std::fs::create_dir_all(&directory)
+        .map_err(|error| format!("eleven-cache: unable to create media cache: {error}"))?;
+    let safe_id: String = job_id
+        .chars()
+        .filter(|character| {
+            character.is_ascii_alphanumeric() || *character == '-' || *character == '_'
+        })
+        .take(64)
+        .collect();
+    if safe_id.is_empty() {
+        return Err("eleven-cache: invalid job id".into());
+    }
+    let extension = if extension.is_empty() {
+        "bin"
+    } else {
+        extension
+    };
+    let destination = directory.join(format!("{safe_id}.{extension}"));
+    let temporary = directory.join(format!(".{safe_id}.{extension}.tmp"));
+    let _ = std::fs::remove_file(&temporary);
+    let write_result = (|| -> Result<(), String> {
+        let mut file = std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&temporary)
+            .map_err(|error| format!("eleven-cache: unable to create temporary result: {error}"))?;
+        use std::io::Write;
+        file.write_all(bytes)
+            .and_then(|_| file.sync_all())
+            .map_err(|error| format!("eleven-cache: unable to write result: {error}"))?;
+        drop(file);
+        std::fs::rename(&temporary, &destination)
+            .map_err(|error| format!("eleven-cache: unable to commit result: {error}"))
+    })();
+    if write_result.is_err() {
+        let _ = std::fs::remove_file(&temporary);
+    }
+    write_result.map(|_| destination.to_string_lossy().into_owned())
+}
+
+/// Resolve an ElevenLabs running row after restart. Native generation has no remote job id to poll.
+pub fn fail_lost_native_job(app: &AppHandle, job_id: &str, workspace_id: &str, node_id: &str) {
+    let message = "Generation result lost because the app closed — run again";
+    update_job_row(
+        app,
+        job_id,
+        "failed",
+        &serde_json::json!({"error": message}),
+    );
+    emit_job(
+        app,
+        job_id,
+        workspace_id,
+        node_id,
+        "failed",
+        vec![],
+        None,
+        Some(message.into()),
+    );
+}
+
+fn uuid_v7() -> String {
+    let timestamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|duration| duration.as_millis() as u64)
+        .unwrap_or_default();
+    let mut bytes = [0_u8; 16];
+    for (index, byte) in bytes[..6].iter_mut().enumerate() {
+        *byte = (timestamp >> (40 - index * 8)) as u8;
+    }
+    rand::thread_rng().fill_bytes(&mut bytes[6..]);
+    bytes[6] = (bytes[6] & 0x0f) | 0x70;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    format!(
+        "{:02x}{:02x}{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}-{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}",
+        bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7],
+        bytes[8], bytes[9], bytes[10], bytes[11], bytes[12], bytes[13], bytes[14], bytes[15]
+    )
 }
 
 /// Download the result media into the app data `media/` folder — returns the local path on success

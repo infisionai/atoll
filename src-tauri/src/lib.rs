@@ -79,8 +79,18 @@ pub fn run() {
         jobs.unwrap_or_default()
       };
       for (job_id, workspace_id, node_id, provider_id) in open {
-        log::info!("Resuming unsettled job: {job_id} ({provider_id})");
-        commands::spawn_job_poll(app.handle().clone(), job_id, workspace_id, node_id, provider_id);
+        if provider_id == provider::elevenlabs::PROVIDER_ID {
+          log::info!("Closing lost synchronous ElevenLabs job after restart: {job_id}");
+          commands::fail_lost_native_job(
+            app.handle(),
+            &job_id,
+            &workspace_id,
+            &node_id,
+          );
+        } else {
+          log::info!("Resuming unsettled job: {job_id} ({provider_id})");
+          commands::spawn_job_poll(app.handle().clone(), job_id, workspace_id, node_id, provider_id);
+        }
       }
       Ok(())
     })

@@ -5,6 +5,8 @@ pub mod elevenlabs;
 pub mod elevenlabs_api;
 pub mod elevenlabs_catalog;
 pub mod elevenlabs_client;
+pub mod elevenlabs_generation_client;
+pub mod elevenlabs_requests;
 pub mod higgsfield;
 pub mod jobs;
 pub mod kling;
@@ -97,6 +99,21 @@ impl Provider {
         }
     }
 
+    pub fn is_native(&self) -> bool {
+        matches!(self, Provider::ElevenLabs(_))
+    }
+
+    pub async fn generate_audio(
+        &self,
+        kind: &str,
+        params: &Value,
+    ) -> Result<elevenlabs::AudioResult, String> {
+        match self {
+            Provider::ElevenLabs(provider) => provider.generate(kind, params).await,
+            _ => Err("eleven-validation: native audio generation is only supported by ElevenLabs".into()),
+        }
+    }
+
     /// Provider-specific dynamic catalog cache invalidation after login/logout.
     pub async fn invalidate_catalog(&self) {
         if let Provider::Kling(kling) = self {
@@ -123,7 +140,9 @@ impl Provider {
             Provider::Kling(p) => p.conn.tool_call_no_replay(tool, args).await,
             Provider::Higgsfield(p) => p.conn.tool_call(tool, args).await,
             Provider::Magnific(p) => p.conn.tool_call(tool, args).await,
-            Provider::ElevenLabs(_) => Err("eleven-validation: ElevenLabs generation is not available yet".into()),
+            Provider::ElevenLabs(_) => {
+                Err("eleven-validation: ElevenLabs uses native synchronous submission".into())
+            }
         }
     }
 
@@ -139,7 +158,9 @@ impl Provider {
                 .map(|(t, a)| (t.to_string(), a)),
             Provider::Kling(_) => kling::Kling::submit_call(kind, params)
                 .map(|(t, a)| (t.to_string(), a)),
-            Provider::ElevenLabs(_) => Err("eleven-validation: ElevenLabs generation is not available yet".into()),
+            Provider::ElevenLabs(_) => {
+                Err("eleven-validation: ElevenLabs uses native synchronous submission".into())
+            }
         }
     }
 
@@ -165,12 +186,15 @@ impl Provider {
     }
 
     /// Job status query — (tool name, arguments)
-    pub fn status_call(&self, job_id: &str) -> (&'static str, Value) {
+    pub fn status_call(&self, job_id: &str) -> Result<(&'static str, Value), String> {
         match self {
-            Provider::Higgsfield(_) => higgsfield::Higgsfield::status_call(job_id),
-            Provider::Magnific(_) => magnific::Magnific::status_call(job_id),
-            Provider::Kling(_) => kling::Kling::status_call(job_id),
-            Provider::ElevenLabs(_) => ("", Value::Null),
+            Provider::Higgsfield(_) => Ok(higgsfield::Higgsfield::status_call(job_id)),
+            Provider::Magnific(_) => Ok(magnific::Magnific::status_call(job_id)),
+            Provider::Kling(_) => Ok(kling::Kling::status_call(job_id)),
+            Provider::ElevenLabs(_) => Err(
+                "eleven-validation: ElevenLabs jobs are synchronous and have no status endpoint"
+                    .into(),
+            ),
         }
     }
 
@@ -212,6 +236,15 @@ mod tests {
             provider.connect().await.unwrap_err(),
             "eleven-key-required: enter an ElevenLabs API key"
         );
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn native_status_call_is_an_explicit_error_not_an_empty_mcp_tuple() {
+        let dir = std::env::temp_dir().join(format!("atoll-elevenlabs-status-{}", std::process::id()));
+        let provider = Provider::ElevenLabs(elevenlabs::ElevenLabs::new(dir.clone()));
+        let error = provider.status_call("job-1").unwrap_err();
+        assert!(error.starts_with("eleven-validation"));
         let _ = std::fs::remove_dir_all(dir);
     }
 }
