@@ -117,6 +117,20 @@
   border-color: #334a52;
 }
 
+/* CJK-aware wrapping: Korean breaks between words, never inside them.
+   Without this, narrow table columns collapse to one character per line. */
+.vp-doc {
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+/* Keep table columns readable; a too-wide table scrolls horizontally
+   (VitePress already renders tables in an overflow-x container) */
+.vp-doc th,
+.vp-doc td {
+  min-width: 7em;
+}
+
 /* Reduced motion is a first-class citizen, same as the app */
 @media (prefers-reduced-motion: reduce) {
   *,
