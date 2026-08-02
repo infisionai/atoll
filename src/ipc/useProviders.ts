@@ -22,8 +22,8 @@ export function useProviders() {
       for (const ph of PLACEHOLDERS) {
         if (!map.has(ph.id)) map.set(ph.id, ph)
       }
-      // Order: higgsfield first, the rest in slot order
-      const order = ['higgsfield', 'magnific', 'kling']
+      // Keep the provider cards stable while allowing native providers to join the registry.
+      const order = ['higgsfield', 'magnific', 'kling', 'elevenlabs']
       return [...map.values()].sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id))
     })
   }, [])
@@ -79,6 +79,21 @@ export function useProviders() {
     [merge],
   )
 
+  const setApiKey = useCallback(
+    async (id: string, apiKey: string) => {
+      setError(null)
+      patch(id, { state: 'connecting' })
+      try {
+        merge([await ipc.setProviderApiKey(id, apiKey)])
+      } catch (e) {
+        patch(id, { state: 'disconnected' })
+        setError(e instanceof Error ? e.message : String(e))
+        throw e
+      }
+    },
+    [merge],
+  )
+
   const disconnect = useCallback(
     async (id: string) => {
       await ipc.disconnectProvider(id)
@@ -101,7 +116,7 @@ export function useProviders() {
     [],
   )
 
-  return { statuses, error, reload, connect, disconnect, refreshBalance }
+  return { statuses, error, reload, connect, setApiKey, disconnect, refreshBalance }
 }
 
 /** Balance lookup failure → notice text for the card. Known reasons are spelled out in Korean */

@@ -1,7 +1,9 @@
 //! Provider connection layer — OAuth, tokens, and balance + multi-provider registry
 
 pub mod connection;
+pub mod elevenlabs;
 pub mod elevenlabs_api;
+pub mod elevenlabs_client;
 pub mod higgsfield;
 pub mod jobs;
 pub mod kling;
@@ -20,6 +22,7 @@ pub enum Provider {
     Higgsfield(higgsfield::Higgsfield),
     Magnific(magnific::Magnific),
     Kling(kling::Kling),
+    ElevenLabs(elevenlabs::ElevenLabs),
 }
 
 impl Provider {
@@ -28,6 +31,7 @@ impl Provider {
             Provider::Higgsfield(p) => p.conn.id(),
             Provider::Magnific(p) => p.conn.id(),
             Provider::Kling(p) => p.conn.id(),
+            Provider::ElevenLabs(_) => elevenlabs::PROVIDER_ID,
         }
     }
 
@@ -38,6 +42,7 @@ impl Provider {
             Provider::Higgsfield(p) => p.conn.status().await,
             Provider::Magnific(p) => p.conn.status().await,
             Provider::Kling(p) => p.conn.status().await,
+            Provider::ElevenLabs(p) => p.status().await,
         }
     }
 
@@ -46,6 +51,7 @@ impl Provider {
             Provider::Higgsfield(p) => p.conn.connect().await,
             Provider::Magnific(p) => p.conn.connect().await,
             Provider::Kling(p) => p.conn.connect().await,
+            Provider::ElevenLabs(_) => Err("eleven-key-required: enter an ElevenLabs API key".into()),
         }
     }
 
@@ -54,6 +60,7 @@ impl Provider {
             Provider::Higgsfield(p) => p.conn.disconnect().await,
             Provider::Magnific(p) => p.conn.disconnect().await,
             Provider::Kling(p) => p.conn.disconnect().await,
+            Provider::ElevenLabs(p) => p.disconnect().await,
         }
     }
 
@@ -64,6 +71,7 @@ impl Provider {
             Provider::Higgsfield(p) => p.conn.tool_call(tool, args).await,
             Provider::Magnific(p) => p.conn.tool_call(tool, args).await,
             Provider::Kling(p) => p.conn.tool_call(tool, args).await,
+            Provider::ElevenLabs(_) => Err("eleven-validation: ElevenLabs has no MCP tool call".into()),
         }
     }
 
@@ -73,6 +81,7 @@ impl Provider {
             Provider::Higgsfield(p) => p.catalog(refresh).await,
             Provider::Magnific(p) => p.catalog(refresh).await,
             Provider::Kling(p) => p.catalog(refresh).await,
+            Provider::ElevenLabs(p) => p.catalog(refresh),
         }
     }
 
@@ -83,6 +92,7 @@ impl Provider {
             Provider::Higgsfield(h) => h.resolve_cross_media(params).await,
             Provider::Magnific(_) => Ok(()),
             Provider::Kling(_) => Ok(()),
+            Provider::ElevenLabs(_) => Ok(()),
         }
     }
 
@@ -90,6 +100,8 @@ impl Provider {
     pub async fn invalidate_catalog(&self) {
         if let Provider::Kling(kling) = self {
             kling.invalidate_catalog().await;
+        } else if let Provider::ElevenLabs(_) = self {
+            // Native catalog invalidation is introduced with the voice cache in E2.
         }
     }
 
@@ -99,6 +111,7 @@ impl Provider {
             Provider::Higgsfield(p) => p.conn.refresh_balance().await,
             Provider::Magnific(p) => p.conn.refresh_balance().await,
             Provider::Kling(p) => p.refresh_balance().await,
+            Provider::ElevenLabs(p) => p.refresh_balance().await,
         }
     }
 
@@ -109,6 +122,7 @@ impl Provider {
             Provider::Kling(p) => p.conn.tool_call_no_replay(tool, args).await,
             Provider::Higgsfield(p) => p.conn.tool_call(tool, args).await,
             Provider::Magnific(p) => p.conn.tool_call(tool, args).await,
+            Provider::ElevenLabs(_) => Err("eleven-validation: ElevenLabs generation is not available yet".into()),
         }
     }
 
@@ -124,6 +138,7 @@ impl Provider {
                 .map(|(t, a)| (t.to_string(), a)),
             Provider::Kling(_) => kling::Kling::submit_call(kind, params)
                 .map(|(t, a)| (t.to_string(), a)),
+            Provider::ElevenLabs(_) => Err("eleven-validation: ElevenLabs generation is not available yet".into()),
         }
     }
 
@@ -144,6 +159,7 @@ impl Provider {
             // Kling MCP has no pre-estimate tool. Never work around this via submit.
             Provider::Kling(_) => kling::Kling::estimate_call(kind, params)
                 .map(|(t, a)| (t.to_string(), a)),
+            Provider::ElevenLabs(_) => Err("eleven-validation: ElevenLabs estimates are not available yet".into()),
         }
     }
 
@@ -153,6 +169,14 @@ impl Provider {
             Provider::Higgsfield(_) => higgsfield::Higgsfield::status_call(job_id),
             Provider::Magnific(_) => magnific::Magnific::status_call(job_id),
             Provider::Kling(_) => kling::Kling::status_call(job_id),
+            Provider::ElevenLabs(_) => ("", Value::Null),
+        }
+    }
+
+    pub async fn set_api_key(&self, value: &str) -> Result<ProviderStatusDto, String> {
+        match self {
+            Provider::ElevenLabs(provider) => provider.set_api_key(value).await,
+            _ => Err("eleven-validation: API keys are only supported by ElevenLabs".into()),
         }
     }
 
@@ -176,6 +200,17 @@ mod tests {
             assert_eq!(status.auth_kind, "oauth");
             assert_eq!(serde_json::to_value(status).unwrap()["authKind"], json!("oauth"));
         }
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[tokio::test]
+    async fn native_connect_requires_an_api_key_without_opening_a_browser() {
+        let dir = std::env::temp_dir().join(format!("atoll-elevenlabs-connect-{}", std::process::id()));
+        let provider = Provider::ElevenLabs(elevenlabs::ElevenLabs::new(dir.clone()));
+        assert_eq!(
+            provider.connect().await.unwrap_err(),
+            "eleven-key-required: enter an ElevenLabs API key"
+        );
         let _ = std::fs::remove_dir_all(dir);
     }
 }

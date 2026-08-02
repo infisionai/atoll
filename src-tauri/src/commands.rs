@@ -385,6 +385,19 @@ pub async fn connect_provider(
 }
 
 #[tauri::command]
+pub async fn set_provider_api_key(
+    app: AppHandle,
+    state: State<'_, ProviderState>,
+    provider_id: String,
+    api_key: String,
+) -> Result<ProviderStatusDto, String> {
+    let provider = state.0.by_id(&provider_id)?;
+    let status = provider.set_api_key(&api_key).await?;
+    let _ = app.emit("provider/status-changed", status.clone());
+    Ok(status)
+}
+
+#[tauri::command]
 pub async fn disconnect_provider(
     app: AppHandle,
     state: State<'_, ProviderState>,

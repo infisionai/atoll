@@ -23,6 +23,7 @@ pub fn run() {
       commands::save_graph,
       commands::list_providers,
       commands::connect_provider,
+      commands::set_provider_api_key,
       commands::disconnect_provider,
       commands::refresh_balance,
       commands::get_catalog,
@@ -62,6 +63,9 @@ pub fn run() {
         )),
         Arc::new(provider::Provider::Kling(
           provider::kling::Kling::new(dir.clone()),
+        )),
+        Arc::new(provider::Provider::ElevenLabs(
+          provider::elevenlabs::ElevenLabs::new(dir.clone()),
         )),
       ])));
 

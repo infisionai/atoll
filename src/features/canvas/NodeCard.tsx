@@ -21,6 +21,7 @@ const MCP_PROVIDER_LABEL: Record<string, string> = {
   higgsfield: 'Higgsfield',
   magnific: 'Magnific',
   kling: 'Kling',
+  elevenlabs: 'ElevenLabs',
 }
 
 interface NodeCardProps {

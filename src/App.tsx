@@ -94,6 +94,7 @@ export function App() {
             <ProviderSettings
               providers={prov.statuses}
               onConnect={(id) => prov.connect(id)}
+              onSetApiKey={(id, apiKey) => prov.setApiKey(id, apiKey)}
               onDisconnect={(id) => prov.disconnect(id)}
               onRefreshBalance={(id) => prov.refreshBalance(id)}
               onBuyCredits={(id) => {

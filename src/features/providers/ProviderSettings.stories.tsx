@@ -53,6 +53,7 @@ function Interactive({ initial }: { initial: ProviderStatus[] }) {
       <ProviderSettings
         providers={providers}
         onConnect={connect}
+        onSetApiKey={async () => {}}
         onDisconnect={async (id) => {
           await new Promise((r) => setTimeout(r, 900))
           patch(id, { state: 'disconnected', account: undefined, balance: undefined })
