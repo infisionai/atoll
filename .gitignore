@@ -15,3 +15,7 @@ src-tauri/gen/
 secrets/
 *.pem
 *.key
+
+# VitePress build output
+docs/.vitepress/dist/
+docs/.vitepress/cache/
