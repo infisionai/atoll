@@ -12,6 +12,20 @@ const PLACEHOLDERS: ProviderStatus[] = []
 export function useProviders() {
   const [statuses, setStatuses] = useState<ProviderStatus[]>(PLACEHOLDERS)
   const [error, setError] = useState<string | null>(null)
+  // Per-provider connect/key-validation failures — rendered on the settings card
+  const [connectErrors, setConnectErrors] = useState<Record<string, string>>({})
+
+  const setConnectError = useCallback((id: string, message: string | null) => {
+    setConnectErrors((prev) => {
+      if (message === null) {
+        if (!(id in prev)) return prev
+        const next = { ...prev }
+        delete next[id]
+        return next
+      }
+      return { ...prev, [id]: message }
+    })
+  }, [])
 
   const merge = useCallback((incoming: ProviderStatus[]) => {
     setStatuses((prev) => {
@@ -68,39 +82,46 @@ export function useProviders() {
   const connect = useCallback(
     async (id: string) => {
       setError(null)
+      setConnectError(id, null)
       patch(id, { state: 'connecting' })
       try {
         merge([await ipc.connectProvider(id)])
       } catch (e) {
         patch(id, { state: 'disconnected' })
-        setError(e instanceof Error ? e.message : String(e))
+        const message = e instanceof Error ? e.message : String(e)
+        setError(message)
+        setConnectError(id, message)
       }
     },
-    [merge],
+    [merge, setConnectError],
   )
 
   const setApiKey = useCallback(
     async (id: string, apiKey: string) => {
       setError(null)
+      setConnectError(id, null)
       patch(id, { state: 'connecting' })
       try {
         merge([await ipc.setProviderApiKey(id, apiKey)])
       } catch (e) {
         patch(id, { state: 'disconnected' })
-        setError(e instanceof Error ? e.message : String(e))
+        const message = e instanceof Error ? e.message : String(e)
+        setError(message)
+        setConnectError(id, message)
         throw e
       }
     },
-    [merge],
+    [merge, setConnectError],
   )
 
   const disconnect = useCallback(
     async (id: string) => {
       await ipc.disconnectProvider(id)
+      setConnectError(id, null)
       patch(id, { state: 'disconnected', account: undefined, balance: undefined })
       reload()
     },
-    [reload],
+    [reload, setConnectError],
   )
 
   const refreshBalance = useCallback(
@@ -116,7 +137,7 @@ export function useProviders() {
     [],
   )
 
-  return { statuses, error, reload, connect, setApiKey, disconnect, refreshBalance }
+  return { statuses, error, connectErrors, reload, connect, setApiKey, disconnect, refreshBalance }
 }
 
 /** Balance lookup failure → notice text for the card. Known reasons are spelled out in Korean */

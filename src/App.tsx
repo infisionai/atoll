@@ -101,6 +101,7 @@ export function App() {
           {homeView === 'settings' ? (
             <ProviderSettings
               providers={prov.statuses}
+              connectErrors={prov.connectErrors}
               onConnect={(id) => prov.connect(id)}
               onSetApiKey={(id, apiKey) => prov.setApiKey(id, apiKey)}
               onDisconnect={(id) => prov.disconnect(id)}

@@ -6,6 +6,22 @@ use std::time::Duration;
 pub const DEFAULT_BASE_URL: &str = "https://api.elevenlabs.io";
 const READ_TIMEOUT: Duration = Duration::from_secs(15);
 
+/// 401 body → stable user-facing message. A key can be real yet created without the
+/// permissions the read-only endpoints need (detail.status == "missing_permissions").
+fn unauthorized_message(body: &Value) -> String {
+    let missing_permissions = body
+        .get("detail")
+        .and_then(|detail| detail.get("status"))
+        .and_then(Value::as_str)
+        == Some("missing_permissions");
+    if missing_permissions {
+        "eleven-key-permissions: the API key is missing required permissions — create a key with User read (balance) and Voices read access"
+            .into()
+    } else {
+        "eleven-key-invalid: ElevenLabs rejected the API key".into()
+    }
+}
+
 pub struct ElevenLabsClient {
     base_url: String,
     http: reqwest::Client,
@@ -39,11 +55,14 @@ impl ElevenLabsClient {
             .send()
             .await
             .map_err(|error| {
-                key.redact(format!("eleven-validation: subscription request failed: {error}"))
+                key.redact(format!(
+                    "eleven-validation: subscription request failed: {error}"
+                ))
             })?;
         let status = response.status();
         if status == reqwest::StatusCode::UNAUTHORIZED {
-            return Err("eleven-key-invalid: ElevenLabs rejected the API key".into());
+            let body = response.json::<Value>().await.unwrap_or(Value::Null);
+            return Err(unauthorized_message(&body));
         }
         if !status.is_success() {
             return Err(format!(
@@ -71,7 +90,8 @@ impl ElevenLabsClient {
             })?;
         let status = response.status();
         if status == reqwest::StatusCode::UNAUTHORIZED {
-            return Err("eleven-key-invalid: ElevenLabs rejected the API key".into());
+            let body = response.json::<Value>().await.unwrap_or(Value::Null);
+            return Err(unauthorized_message(&body));
         }
         if !status.is_success() {
             return Err(format!(
@@ -79,9 +99,10 @@ impl ElevenLabsClient {
                 status.as_u16()
             ));
         }
-        let body = response.json::<Value>().await.map_err(|error| {
-            format!("eleven-voices-invalid: invalid voices response: {error}")
-        })?;
+        let body = response
+            .json::<Value>()
+            .await
+            .map_err(|error| format!("eleven-voices-invalid: invalid voices response: {error}"))?;
         parse_voices(&body)
     }
 }
@@ -171,6 +192,35 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn restricted_key_401_reports_missing_permissions() {
+        let server = FakeHttpServer::new(
+            401,
+            r#"{"detail":{"status":"missing_permissions","message":"not surfaced"}}"#,
+        );
+        let key = ApiKey::new("fake-key-for-local-test").unwrap();
+        let error = ElevenLabsClient::with_base_url(&server.base_url)
+            .get_subscription(&key)
+            .await
+            .unwrap_err();
+        assert!(error.starts_with("eleven-key-permissions"));
+        assert!(!error.contains(key.as_str()));
+        assert!(!error.contains("not surfaced"));
+    }
+
+    #[test]
+    fn unauthorized_message_distinguishes_permission_gaps_from_bad_keys() {
+        let missing = serde_json::json!({"detail": {"status": "missing_permissions"}});
+        assert!(unauthorized_message(&missing).starts_with("eleven-key-permissions"));
+        for body in [
+            serde_json::json!({"detail": "invalid_api_key"}),
+            serde_json::json!({"detail": {"status": "invalid_api_key"}}),
+            Value::Null,
+        ] {
+            assert!(unauthorized_message(&body).starts_with("eleven-key-invalid"));
+        }
+    }
+
+    #[tokio::test]
     async fn subscription_client_maps_server_errors_without_body_dump() {
         let server = FakeHttpServer::new(500, r#"{"detail":"do not surface this body"}"#);
         let key = ApiKey::new("fake-key-for-local-test").unwrap();
@@ -178,7 +228,10 @@ mod tests {
             .get_subscription(&key)
             .await
             .unwrap_err();
-        assert_eq!(error, "eleven-validation: subscription request failed (HTTP 500)");
+        assert_eq!(
+            error,
+            "eleven-validation: subscription request failed (HTTP 500)"
+        );
         assert!(!error.contains("do not surface this body"));
     }
 
@@ -195,7 +248,8 @@ mod tests {
         assert_eq!(voices.len(), 3);
         let request = server.request();
         assert!(request.starts_with("GET /v2/voices HTTP/1.1"));
-        assert!(request.to_ascii_lowercase().contains("accept: application/json"));
+        assert!(request
+            .to_ascii_lowercase()
+            .contains("accept: application/json"));
     }
-
 }

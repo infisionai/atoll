@@ -2,10 +2,13 @@ import { BusyButton } from '../../shared/BusyButton'
 import { useState } from 'react'
 import type { ProviderStatus } from '../canvas/library/providers'
 import { usesApiKey } from './auth-kind'
+import { displayProviderError } from './provider-error'
 import styles from './ProviderSettings.module.css'
 
 interface ProviderSettingsProps {
   providers: ProviderStatus[]
+  /** Per-provider connect/key-validation failure messages (useProviders.connectErrors) */
+  connectErrors?: Record<string, string>
   onConnect: (id: string) => Promise<unknown> | void
   onSetApiKey: (id: string, apiKey: string) => Promise<unknown> | void
   onDisconnect: (id: string) => Promise<unknown> | void
@@ -18,6 +21,7 @@ interface ProviderSettingsProps {
 /** Settings > Provider connections — the settings screen inside the Home tab */
 export function ProviderSettings({
   providers,
+  connectErrors,
   onConnect,
   onSetApiKey,
   onDisconnect,
@@ -94,8 +98,10 @@ export function ProviderSettings({
                       className={`${styles.action} ${styles.primary}`}
                       disabled={!apiKeys[p.id]?.trim()}
                       onClick={() =>
-                        Promise.resolve(onSetApiKey(p.id, apiKeys[p.id] ?? '')).then(() =>
-                          setApiKeys((keys) => ({ ...keys, [p.id]: '' })),
+                        Promise.resolve(onSetApiKey(p.id, apiKeys[p.id] ?? '')).then(
+                          () => setApiKeys((keys) => ({ ...keys, [p.id]: '' })),
+                          // Validation failure keeps the typed key; the reason renders below
+                          () => {},
                         )
                       }
                     >
@@ -117,6 +123,11 @@ export function ProviderSettings({
                   >
                     Connect
                   </BusyButton>
+                )}
+                {displayProviderError(connectErrors?.[p.id]) && (
+                  <span className={styles.notice} role="alert">
+                    {displayProviderError(connectErrors?.[p.id])}
+                  </span>
                 )}
               </div>
             )}
