@@ -21,7 +21,7 @@ MCP 도구 호출이 성공하면 페이로드가 `structuredContent`로 반환�
 
 ## 분류
 
-`Read`는 로컬 캔버스 또는 공급자/작업 상태를 읽습니다. `Write`는 로컬 캔버스를 변경합니다. `Billable`은 공급자 작업을 제출하고 공급자 크레딧을 소모할 수 있는 작업을 의미합니다.
+`Read`는 로컬 캔버스 또는 Provider/작업 상태를 읽습니다. `Write`는 로컬 캔버스를 변경합니다. `Billable`은 Provider 작업을 제출하고 Provider 크레딧을 소모할 수 있는 작업을 의미합니다.
 
 ## `canvas_state`
 
@@ -39,7 +39,7 @@ MCP 도구 호출이 성공하면 페이로드가 `structuredContent`로 반환�
 
 ## `list_models`
 
-연결된 공급자의 병합된 카탈로그를 읽습니다. 반환된 `ref`를 `canvas_add_node`의 모델 `ref`로 사용합니다.
+연결된 Provider의 병합된 카탈로그를 읽습니다. 반환된 `ref`를 `canvas_add_node`의 모델 `ref`로 사용합니다.
 
 입력 스키마:
 
@@ -47,7 +47,7 @@ MCP 도구 호출이 성공하면 페이로드가 `structuredContent`로 반환�
 | --- | --- | --- | --- |
 | `output_type` | 문자열 열거형: `image`, `video`, `audio`, `3d` | 아니요 | 출력 유형으로 필터링합니다. 모든 유형을 보려면 생략합니다. |
 
-응답 형태: 각 항목에 `ref`, `name`, `output_type`, `developer`, `description`, `provider`가 포함된 `{ "models": [...] }`. 연결되지 않은 공급자는 건너뜁니다. 공급자 카탈로그를 반환할 수 없으면 도구가 마지막 카탈로그 오류를 보고합니다.
+응답 형태: 각 항목에 `ref`, `name`, `output_type`, `developer`, `description`, `provider`가 포함된 `{ "models": [...] }`. 연결되지 않은 Provider는 건너뜁니다. Provider 카탈로그를 반환할 수 없으면 도구가 마지막 카탈로그 오류를 보고합니다.
 
 분류: **Read**
 
@@ -119,7 +119,7 @@ MCP 도구 호출이 성공하면 페이로드가 `structuredContent`로 반환�
 
 ## `canvas_run`
 
-생성을 위해 모델 노드를 실행합니다. Atoll은 보류 중인 결과 노드를 자동으로 만들고 공급자 작업 ID를 반환합니다. 완료 상태를 확인하려면 `job_wait`를 사용하세요.
+생성을 위해 모델 노드를 실행합니다. Atoll은 보류 중인 결과 노드를 자동으로 만들고 Provider 작업 ID를 반환합니다. 완료 상태를 확인하려면 `job_wait`를 사용하세요.
 
 입력 스키마:
 
@@ -130,14 +130,14 @@ MCP 도구 호출이 성공하면 페이로드가 `structuredContent`로 반환�
 응답 형태: `{ "jobIds": ["..."] }`.
 
 ::: danger
-`canvas_run`은 과금 대상입니다. 공급자 크레딧이 소모됩니다. 사용자가 생성을 명시적으로 요청한 후에만 호출하세요.
+`canvas_run`은 과금 대상입니다. Provider 크레딧이 소모됩니다. 사용자가 생성을 명시적으로 요청한 후에만 호출하세요.
 :::
 
 분류: **Write · Billable**
 
 ## `job_wait`
 
-현재 워크스페이스에 속한 생성 작업을 기다립니다. Atoll의 폴링 작업자가 공급자를 확인하는 동안 도구는 로컬에서 추적하는 상태를 감시합니다.
+현재 워크스페이스에 속한 생성 작업을 기다립니다. Atoll의 폴링 작업자가 Provider를 확인하는 동안 도구는 로컬에서 추적하는 상태를 감시합니다.
 
 입력 스키마:
 
