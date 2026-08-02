@@ -83,6 +83,35 @@ describe('buildFormSpec — prompt handling', () => {
     expect(spec.basic[0]).toMatchObject({ name: 'prompt', kind: 'textarea', required: true })
   })
 
+  it('does not inject a prompt when the model declares its own required textarea (TTS text)', () => {
+    const spec = buildFormSpec({
+      ...base,
+      output_type: 'audio',
+      parameters: [
+        p({ name: 'text', required: 'required', format: 'textarea' }),
+        p({ name: 'voice_id', required: 'required', options: ['a', 'b', 'c', 'd', 'e'] }),
+      ],
+    })
+    const names = spec.basic.map((f) => f.name)
+    expect(names).not.toContain('prompt')
+    expect(spec.basic[0]).toMatchObject({ name: 'text', kind: 'textarea', required: true })
+  })
+
+  it('a required textarea is connectable like a prompt', () => {
+    expect(
+      paramToField(p({ name: 'text', required: 'required', format: 'textarea' })).connectable,
+    ).toBe(true)
+    expect(paramToField(p({ name: 'text', format: 'textarea' })).connectable).toBe(false)
+  })
+
+  it('an optional textarea does not block the main prompt injection', () => {
+    const spec = buildFormSpec({
+      ...base,
+      parameters: [p({ name: 'notes', format: 'textarea' })],
+    })
+    expect(spec.basic[0]).toMatchObject({ name: 'prompt', required: true })
+  })
+
   it('does not inject a duplicate when a main prompt parameter exists', () => {
     const spec = buildFormSpec({
       ...base,

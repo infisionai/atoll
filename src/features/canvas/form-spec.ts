@@ -50,7 +50,8 @@ export function paramToField(p: ParamSpec): FieldSpec {
     label: p.name.replace(/_/g, ' '),
     required: p.required === 'required',
     portType: 'text' as const,
-    connectable: isPromptLike(p),
+    // A required textarea is the model's main text input (e.g. TTS `text`) — wired like a prompt
+    connectable: isPromptLike(p) || (p.required === 'required' && p.format === 'textarea'),
     description: p.description,
     default: p.default,
   }
@@ -125,8 +126,12 @@ export function buildFormSpec(model: ModelSpec): FormSpec {
 
   // Main prompt injection — auxiliary prompts like negative_prompt/texture_prompt are
   // not the main prompt (tripo_3d once got a 422 because negative_prompt suppressed the injection).
-  // 3D models with required media (image→3D, etc.) are promptless pipelines, so skip injection
-  const hasMainPrompt = fields.some((f) => f.name === 'prompt')
+  // 3D models with required media (image→3D, etc.) are promptless pipelines, so skip injection.
+  // A required textarea parameter (e.g. TTS `text`) IS the main text input — injecting a
+  // prompt next to it duplicates the field and the provider rejects the unknown name.
+  const hasMainPrompt = fields.some(
+    (f) => f.name === 'prompt' || (f.required && f.kind === 'textarea'),
+  )
   const skipFor3dMedia =
     model.output_type === '3d' && (model.medias ?? []).some((m) => m.required === true)
   if (!hasMainPrompt && !skipFor3dMedia && PROMPT_OUTPUT_TYPES.includes(model.output_type)) {
