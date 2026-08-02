@@ -12,7 +12,7 @@ Atoll connects to Higgsfield, Magnific, and Kling through their MCP services. Ch
 | Provider | Output types | Cost estimate | Media input | Account requirement | Balance | Verification |
 | --- | --- | --- | --- | --- | --- | --- |
 | Higgsfield | Live catalog-defined types, including image and video where exposed | Supported for supported generation kinds (`$`) | Higgsfield media IDs/UUIDs; cross-provider results are imported from a media URL | Higgsfield account via OAuth | Displayed in Settings and the canvas balance chip | Last verified: 2026-08 |
-| Magnific | Image and video | Supported for supported models; Auto video has no pre-run estimate | Image creation identifiers; video uses one start frame as a URL or creation identifier | Magnific Premium plan is required for MCP use | Displayed when the account can answer `account_balance`; Premium access is required | Last verified: 2026-08 |
+| Magnific | Image and video | Supported (`$`); Auto-family models are excluded from the catalog | Image creation identifiers; video uses one start frame as a URL or creation identifier | Magnific Premium plan is required for MCP use | Displayed when the account can answer `account_balance`; Premium access is required | Last verified: 2026-08 |
 | Kling | Image and video | Not available; no `$` estimate is expected | Provider-accessible HTTPS media URLs only (`inputType: URL`) | Kling account via OAuth | Remaining credits are parsed from membership/credit data and displayed | Last verified: 2026-08 |
 
 The app's live catalog is authoritative for model availability, parameters, supported media ports, and account-specific Kling models. Model names are intentionally not copied into this documentation.

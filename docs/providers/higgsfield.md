@@ -1,15 +1,15 @@
 ---
 title: Connect Higgsfield
-description: Connect Higgsfield to Atoll and use its live catalog, presets, balances, and cost estimates.
+description: Connect Higgsfield to Atoll and use its live catalog, balances, and cost estimates.
 ---
 
 # Connect Higgsfield
 
-Connect a Higgsfield account to browse its live model catalog, use video presets, check the provider balance, and request a pre-run `$` estimate where the selected generation kind supports it.
+Connect a Higgsfield account to browse its live model catalog, check the provider balance, and request a pre-run `$` estimate where the selected generation kind supports it.
 
 ## Outcome
 
-After setup, Higgsfield is available as an independent provider in Atoll. Its live catalog and presets can be refreshed, its balance can be checked, and supported generation nodes can show a pre-run `$` estimate.
+After setup, Higgsfield is available as an independent provider in Atoll. Its live catalog is loaded and cached, its balance can be checked, and supported generation nodes can show a pre-run `$` estimate.
 
 ## Prerequisites
 
@@ -39,7 +39,6 @@ After the connection succeeds:
 
 - Higgsfield appears as **Connected** in Provider Connections, with the authorized account when available.
 - Atoll loads Higgsfield's live model catalog through `models_explore` and caches it for later use. The catalog, not this page, is the source of truth for model names and parameters.
-- Video presets are loaded through Higgsfield's `presets_show` operation. Presets are a Higgsfield-only feature in Atoll.
 - The balance appears as a credit value in Settings and in the canvas balance chip. Use **Refresh balance** to query Higgsfield's `balance` operation again.
 - A supported generation node can show a `$` estimate. The estimate is a preflight and does not submit the job.
 

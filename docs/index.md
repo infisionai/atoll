@@ -11,11 +11,11 @@ hero:
     alt: Atoll canvas preview placeholder
   actions:
     - theme: brand
-      text: Download Atoll
-      link: https://github.com/infisionai/atoll/releases/latest
-    - theme: alt
       text: Build your first workflow
       link: /getting-started/first-workflow
+    - theme: alt
+      text: Download — coming soon
+      link: https://github.com/infisionai/atoll/releases
     - theme: alt
       text: View on GitHub
       link: https://github.com/infisionai/atoll
@@ -26,7 +26,7 @@ features:
   - title: Cross-provider workflows
     details: Generate an image on Magnific, animate it on Higgsfield. Results from one provider plug straight into the next node.
   - title: Know before you run
-    details: Provider balances in the header, a cost estimate on the node. See what a run costs before you spend credits.
+    details: Provider balances in the header, and a cost estimate on the node for providers that support it. See what a run costs before you spend credits.
   - title: Results survive the tab
     details: Workspaces, jobs, and media persist in local SQLite and a media cache. Close the app mid-run — tracking resumes on restart.
   - title: An agent inside the instrument

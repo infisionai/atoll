@@ -5,12 +5,16 @@ description: Download and install the unsigned Atoll macOS app from the official
 
 # Install on macOS
 
+::: info No release published yet
+The first public release has not shipped. These steps apply as soon as the first release appears on the [Releases page](https://github.com/infisionai/atoll/releases); until then, running from source is the only option.
+:::
+
 ## Outcome
 
 You will install Atoll from the official GitHub Releases page and open the dashboard on your Mac.
 
 GitHub Releases is the only official distribution channel for Atoll:
-<https://github.com/infisionai/atoll/releases/latest>.
+<https://github.com/infisionai/atoll/releases>.
 
 ## Prerequisites
 
@@ -20,7 +24,7 @@ GitHub Releases is the only official distribution channel for Atoll:
 
 ## Steps
 
-1. Open the [latest Atoll release](https://github.com/infisionai/atoll/releases/latest).
+1. Open the [latest Atoll release](https://github.com/infisionai/atoll/releases).
 
 2. Choose the `.dmg` that matches your Mac's chip:
 
@@ -52,7 +56,7 @@ Installation succeeded when Atoll opens and the dashboard shows **Workspaces**.
 
 ### macOS blocks the first launch
 
-Do not treat the warning as proof that the app is trustworthy. Confirm the source is the official [GitHub Releases page](https://github.com/infisionai/atoll/releases/latest), then use **right-click → Open** or **System Settings > Privacy & Security > Open Anyway**. The `xattr` command above is an advanced alternative only after that source check.
+Do not treat the warning as proof that the app is trustworthy. Confirm the source is the official [GitHub Releases page](https://github.com/infisionai/atoll/releases), then use **right-click → Open** or **System Settings > Privacy & Security > Open Anyway**. The `xattr` command above is an advanced alternative only after that source check.
 
 ### The app opens but the model library is empty
 

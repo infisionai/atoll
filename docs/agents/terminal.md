@@ -25,6 +25,10 @@ command -v codex && codex --version
 
 Atoll does not install either CLI or perform its account login. If the command is missing, fix the CLI installation or PATH first; see [Troubleshooting](/help/troubleshooting).
 
+::: warning
+The agent terminal is verified on macOS only. It launches the CLI through a Unix login shell (`$SHELL -l -c`, falling back to `/bin/zsh`), so it is not functional on Windows yet.
+:::
+
 ## Start, switch, and end a session
 
 1. Open a workspace and select **Open agent terminal** in the canvas.

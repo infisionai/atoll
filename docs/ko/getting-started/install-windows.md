@@ -5,12 +5,16 @@ description: 공식 GitHub Release에서 Atoll Windows 설치 프로그램을 �
 
 # Windows에 설치하기
 
+::: info 아직 공개 릴리스가 없습니다
+첫 공개 릴리스는 아직 출시 전입니다. 아래 단계는 [Releases 페이지](https://github.com/infisionai/atoll/releases)에 첫 릴리스가 올라오는 시점부터 적용되며, 그 전에는 소스에서 직접 실행하는 방법만 사용할 수 있습니다.
+:::
+
 ## 설치 결과
 
 공식 GitHub Releases 페이지에서 Atoll을 설치하고 Windows에서 대시보드를 엽니다.
 
 GitHub Releases는 Atoll의 유일한 공식 배포 채널입니다:
-<https://github.com/infisionai/atoll/releases/latest>.
+<https://github.com/infisionai/atoll/releases>.
 
 ## 사전 요구 사항
 
@@ -20,7 +24,7 @@ GitHub Releases는 Atoll의 유일한 공식 배포 채널입니다:
 
 ## 단계
 
-1. [최신 Atoll 릴리스](https://github.com/infisionai/atoll/releases/latest)를 엽니다.
+1. [최신 Atoll 릴리스](https://github.com/infisionai/atoll/releases)를 엽니다.
 
 2. 릴리스 에셋에서 Windows 설치 프로그램을 선택합니다. `.exe` NSIS 설치 프로그램이나 `.msi` 패키지 중 하나를 선택할 수 있습니다. 파일 이름이 Atoll 릴리스 버전과 일치하는 에셋을 선택합니다.
 
@@ -42,7 +46,7 @@ Atoll이 열리고 대시보드에 **Workspaces**가 표시되면 설치가 완�
 
 ### SmartScreen에서 계속 설치 프로그램을 차단하는 경우
 
-설치 프로그램이 공식 [GitHub Releases 페이지](https://github.com/infisionai/atoll/releases/latest)에서 받은 것인지 확인합니다. 표준 SmartScreen 프롬프트가 표시되면 출처를 확인한 후에만 **More info → Run anyway**를 사용합니다. Smart App Control에서는 개별 우회 방법을 제공하지 않을 수 있으므로 시스템 보안 보호 기능을 끄지 마세요.
+설치 프로그램이 공식 [GitHub Releases 페이지](https://github.com/infisionai/atoll/releases)에서 받은 것인지 확인합니다. 표준 SmartScreen 프롬프트가 표시되면 출처를 확인한 후에만 **More info → Run anyway**를 사용합니다. Smart App Control에서는 개별 우회 방법을 제공하지 않을 수 있으므로 시스템 보안 보호 기능을 끄지 마세요.
 
 ### Atoll은 데이터를 어디에 저장하나요?
 
@@ -51,6 +55,8 @@ Atoll의 애플리케이션 데이터는 `%APPDATA%\infision.atoll\` 아래에 �
 ## 알려진 제한 사항
 
 Windows에서 공급자 OAuth 연결은 아직 검증되지 않았습니다. 현재 연결 구현은 OAuth 브라우저 플로를 시작할 때 macOS의 `open` 명령을 호출하므로, **Settings > Provider Connections > Connect**가 Windows에서 완료된다고 가정하지 마세요. Windows 설치 프로그램으로 대시보드를 열 수는 있지만, Windows에서 공급자가 연결된 워크플로는 아직 검증되지 않았습니다.
+
+에이전트 터미널도 아직 Windows에서 동작하지 않습니다. Atoll은 에이전트 CLI를 Unix 로그인 셸(`$SHELL -l -c`, 폴백 `/bin/zsh`)로 실행하는데, 일반적인 Windows 환경에는 이 셸이 없습니다.
 
 ## 다음 단계
 

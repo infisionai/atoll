@@ -5,12 +5,16 @@ description: Download and install the Atoll Windows installer from the official 
 
 # Install on Windows
 
+::: info No release published yet
+The first public release has not shipped. These steps apply as soon as the first release appears on the [Releases page](https://github.com/infisionai/atoll/releases); until then, running from source is the only option.
+:::
+
 ## Outcome
 
 You will install Atoll from the official GitHub Releases page and open the dashboard on Windows.
 
 GitHub Releases is the only official distribution channel for Atoll:
-<https://github.com/infisionai/atoll/releases/latest>.
+<https://github.com/infisionai/atoll/releases>.
 
 ## Prerequisites
 
@@ -20,7 +24,7 @@ GitHub Releases is the only official distribution channel for Atoll:
 
 ## Steps
 
-1. Open the [latest Atoll release](https://github.com/infisionai/atoll/releases/latest).
+1. Open the [latest Atoll release](https://github.com/infisionai/atoll/releases).
 
 2. In the release assets, choose a Windows installer: either the `.exe` NSIS installer or the `.msi` package. Choose the asset whose filename matches the Atoll release version.
 
@@ -42,15 +46,17 @@ Installation succeeded when Atoll opens and the dashboard shows **Workspaces**. 
 
 ### SmartScreen still blocks the installer
 
-Confirm that the installer came from the official [GitHub Releases page](https://github.com/infisionai/atoll/releases/latest). For the standard SmartScreen prompt, use **More info → Run anyway** only after checking the source. Smart App Control may not provide an individual bypass; do not turn off system security protections.
+Confirm that the installer came from the official [GitHub Releases page](https://github.com/infisionai/atoll/releases). For the standard SmartScreen prompt, use **More info → Run anyway** only after checking the source. Smart App Control may not provide an individual bypass; do not turn off system security protections.
 
 ### Where Atoll stores data
 
 Atoll's application data is stored under `%APPDATA%\infision.atoll\`. Provider credentials are stored locally as JSON files (file mode 0600 on Unix) in the app data directory. Generated media is kept in the app's local `media` cache beneath that directory.
 
-## Known limitation
+## Known limitations
 
 Provider OAuth connections on Windows have not been verified. The current connection implementation invokes the macOS `open` command to launch the OAuth browser flow, so do not assume that **Settings > Provider Connections > Connect** will complete on Windows. The Windows installer can open the dashboard, but a provider-connected workflow on Windows remains unvalidated.
+
+The agent terminal is also not functional on Windows yet. Atoll launches the agent CLI through a Unix login shell (`$SHELL -l -c`, falling back to `/bin/zsh`), which does not exist on a typical Windows installation.
 
 ## Next steps
 

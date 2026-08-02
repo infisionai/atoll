@@ -48,10 +48,7 @@ After connecting:
 - Image models use image creation identifiers for references.
 - Video generation is sent directly to `video_generate` with one clip. Atoll does not use the multi-clip `video_plan` path.
 - A video start frame can be represented by an asset URL or a creation identifier. A cross-provider result is passed as its remote URL.
-
-### Auto video estimates
-
-Auto-family video models do not support a pre-run cost estimate because the server chooses the execution model at run time. A missing `$` estimate for an Auto video model is expected behavior, not a connection failure. Submit only after reviewing the provider's current account and model information.
+- Auto-family entries, which let the server pick the execution model at run time, are excluded from Atoll's catalog; every listed Magnific model supports the pre-run `$` estimate.
 
 ## Troubleshoot
 

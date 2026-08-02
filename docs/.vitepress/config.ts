@@ -82,7 +82,8 @@ export default defineConfig({
   lastUpdated: true,
   // Deep-sea control room: dark is the native habitat
   appearance: 'dark',
-  sitemap: { hostname: 'https://infisionai.github.io/atoll' },
+  // Trailing slash keeps the /atoll/ base in generated sitemap URLs
+  sitemap: { hostname: 'https://infisionai.github.io/atoll/' },
 
   head: [['link', { rel: 'icon', type: 'image/svg+xml', href: '/atoll/favicon.svg' }]],
 
@@ -97,7 +98,7 @@ export default defineConfig({
           { text: 'Reference', link: '/reference/mcp-tools' },
           {
             text: 'Download',
-            link: 'https://github.com/infisionai/atoll/releases/latest',
+            link: 'https://github.com/infisionai/atoll/releases',
           },
         ],
         sidebar: enSidebar,
@@ -114,7 +115,7 @@ export default defineConfig({
           { text: '레퍼런스', link: '/ko/reference/mcp-tools' },
           {
             text: '다운로드',
-            link: 'https://github.com/infisionai/atoll/releases/latest',
+            link: 'https://github.com/infisionai/atoll/releases',
           },
         ],
         sidebar: koSidebar,

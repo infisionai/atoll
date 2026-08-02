@@ -5,12 +5,16 @@ description: 공식 GitHub Release에서 서명되지 않은 Atoll macOS 앱을 
 
 # macOS에 설치하기
 
+::: info 아직 공개 릴리스가 없습니다
+첫 공개 릴리스는 아직 출시 전입니다. 아래 단계는 [Releases 페이지](https://github.com/infisionai/atoll/releases)에 첫 릴리스가 올라오는 시점부터 적용되며, 그 전에는 소스에서 직접 실행하는 방법만 사용할 수 있습니다.
+:::
+
 ## 설치 결과
 
 공식 GitHub Releases 페이지에서 Atoll을 설치하고 Mac에서 대시보드를 엽니다.
 
 GitHub Releases는 Atoll의 유일한 공식 배포 채널입니다:
-<https://github.com/infisionai/atoll/releases/latest>.
+<https://github.com/infisionai/atoll/releases>.
 
 ## 사전 요구 사항
 
@@ -20,7 +24,7 @@ GitHub Releases는 Atoll의 유일한 공식 배포 채널입니다:
 
 ## 단계
 
-1. [최신 Atoll 릴리스](https://github.com/infisionai/atoll/releases/latest)를 엽니다.
+1. [최신 Atoll 릴리스](https://github.com/infisionai/atoll/releases)를 엽니다.
 
 2. Mac의 칩에 맞는 `.dmg`를 선택합니다.
 
@@ -52,7 +56,7 @@ Atoll이 열리고 대시보드에 **Workspaces**가 표시되면 설치가 완�
 
 ### macOS에서 처음 실행을 차단하는 경우
 
-경고가 표시되었다고 해서 앱을 신뢰할 수 있다는 뜻으로 받아들이지 마세요. 공식 [GitHub Releases 페이지](https://github.com/infisionai/atoll/releases/latest)에서 받은 것인지 확인한 다음 **right-click → Open** 또는 **System Settings > Privacy & Security > Open Anyway**를 사용합니다. 위의 `xattr` 명령은 출처를 확인한 후에만 사용하는 고급 대안입니다.
+경고가 표시되었다고 해서 앱을 신뢰할 수 있다는 뜻으로 받아들이지 마세요. 공식 [GitHub Releases 페이지](https://github.com/infisionai/atoll/releases)에서 받은 것인지 확인한 다음 **right-click → Open** 또는 **System Settings > Privacy & Security > Open Anyway**를 사용합니다. 위의 `xattr` 명령은 출처를 확인한 후에만 사용하는 고급 대안입니다.
 
 ### 앱은 열리지만 모델 라이브러리가 비어 있는 경우
 

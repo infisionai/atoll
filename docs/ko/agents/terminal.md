@@ -25,6 +25,10 @@ command -v codex && codex --version
 
 Atoll은 어느 CLI도 설치하거나 해당 계정에 로그인하지 않습니다. 명령을 찾을 수 없다면 먼저 CLI 설치 또는 PATH를 수정합니다. 자세한 내용은 [문제 해결](/ko/help/troubleshooting)을 참고하세요.
 
+::: warning
+에이전트 터미널은 macOS에서만 검증되었습니다. CLI를 Unix 로그인 셸(`$SHELL -l -c`, 폴백 `/bin/zsh`)로 실행하므로 Windows에서는 아직 동작하지 않습니다.
+:::
+
 ## 세션 시작, 전환, 종료
 
 1. 워크스페이스를 열고 캔버스에서 **Open agent terminal**을 선택합니다.
