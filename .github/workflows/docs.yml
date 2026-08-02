@@ -33,7 +33,9 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # npm 11 (bundled with Node 24) resolves optional peer deps the same
+          # way as local installs; npm 10 rejects this lockfile
+          node-version: 24
           cache: npm
 
       - run: npm ci
