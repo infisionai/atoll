@@ -6,8 +6,9 @@ hero:
   text: AI 생성 스택을 하나의 캔버스에 연결하세요.
   tagline: Higgsfield·Magnific·Kling을 내 계정으로 연결하고, 공급자를 넘나들며 결과를 체이닝하고, 미디어는 로컬에 보관합니다. Claude Code와 Codex가 그래프를 직접 조작합니다.
   image:
-    src: /images/canvas.png
-    alt: 노드 그래프와 에이전트 터미널이 열린 Atoll 캔버스
+    # 히어로 영역 예약용 플레이스홀더 — 리디자인 반영 캡처로 교체 예정
+    src: /images/hero-placeholder.svg
+    alt: Atoll 캔버스 미리보기 플레이스홀더
   actions:
     - theme: brand
       text: Atoll 다운로드

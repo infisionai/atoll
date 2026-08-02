@@ -85,6 +85,28 @@
   font-weight: 600;
 }
 
+/* Hero image slot: a wide reserved area for the app capture, not the default
+   small square. The decorative gradient blob is off-brand — remove it. */
+.VPHero .image-bg {
+  display: none;
+}
+
+.VPHero .image-container {
+  width: 100%;
+  height: auto;
+  max-width: 560px;
+  transform: none;
+}
+
+.VPHero .VPImage {
+  position: static;
+  max-width: 100%;
+  max-height: none;
+  width: 100%;
+  border-radius: 12px;
+  transform: none;
+}
+
 /* Quiet surfaces: soft cards sit one step above the abyss, never glow */
 .dark .VPFeature {
   background: #121d22;

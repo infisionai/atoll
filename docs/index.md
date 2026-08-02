@@ -6,8 +6,9 @@ hero:
   text: Your AI generation stack, wired on one canvas.
   tagline: Connect Higgsfield, Magnific, and Kling with your own accounts. Chain results across providers, keep media local, and let Claude Code or Codex work directly on the graph.
   image:
-    src: /images/canvas.png
-    alt: Atoll canvas with a node graph and the agent terminal open
+    # Placeholder reserving the hero area — replace with a redesigned-app capture
+    src: /images/hero-placeholder.svg
+    alt: Atoll canvas preview placeholder
   actions:
     - theme: brand
       text: Download Atoll
