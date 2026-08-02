@@ -37,16 +37,13 @@ GitHub Releases is the only official distribution channel for Atoll:
 
 4. Drag `Atoll.app` to the `Applications` shortcut in the mounted disk image.
 
-5. Atoll is currently unsigned. On the first launch, verify that you downloaded the app from the official GitHub Releases page, then use one of macOS's documented opening paths:
-
-   - In Finder, open `Applications`, Control-click or right-click `Atoll.app`, choose **Open**, then confirm **Open**.
-   - Or try to open the app once, then go to **System Settings > Privacy & Security** and choose **Open Anyway** for Atoll.
-
-   For an advanced, Terminal-based alternative after verifying the download source:
+5. Atoll is currently unsigned and not notarized, so recent macOS versions report the downloaded app as **"damaged"** and refuse to open it. The file is not actually damaged — this is Gatekeeper's quarantine flag on an unnotarized app. First verify that the download came from the official GitHub Releases page, then clear the flag in Terminal:
 
    ```bash
    xattr -cr /Applications/Atoll.app
    ```
+
+   On older macOS versions, Control-click `Atoll.app` → **Open** → **Open**, or **System Settings > Privacy & Security > Open Anyway**, may work without the command.
 
 ## Verify
 
@@ -54,9 +51,9 @@ Installation succeeded when Atoll opens and the dashboard shows **Workspaces**.
 
 ## Troubleshoot
 
-### macOS blocks the first launch
+### macOS says the app is "damaged" or blocks the first launch
 
-Do not treat the warning as proof that the app is trustworthy. Confirm the source is the official [GitHub Releases page](https://github.com/infisionai/atoll/releases), then use **right-click → Open** or **System Settings > Privacy & Security > Open Anyway**. The `xattr` command above is an advanced alternative only after that source check.
+Do not treat the warning as proof that the app is trustworthy — confirm the source is the official [GitHub Releases page](https://github.com/infisionai/atoll/releases) first. Then run the `xattr -cr /Applications/Atoll.app` command above; on recent macOS this is required, since **right-click → Open** no longer bypasses Gatekeeper for unnotarized apps.
 
 ### The app opens but the model library is empty
 
