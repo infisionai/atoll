@@ -33,7 +33,7 @@ jobs:
         include:
           - platform: macos-14 # Apple Silicon
             target: aarch64-apple-darwin
-          - platform: macos-13 # Intel
+          - platform: macos-15-intel # Intel (macos-13 was retired 2025-12)
             target: x86_64-apple-darwin
           - platform: windows-latest
             target: '' # host target
@@ -44,7 +44,9 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # npm 11 (bundled with Node 24) resolves optional peer deps the same
+          # way as local installs; npm 10 rejects this lockfile
+          node-version: 24
           cache: npm
 
       - uses: dtolnay/rust-toolchain@stable

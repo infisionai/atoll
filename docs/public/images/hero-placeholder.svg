@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760" role="img" aria-label="Atoll canvas preview placeholder">
+  <!-- Placeholder that reserves the hero screenshot area. Replace with a real
+       capture of the redesigned app (English workspace name, provider connected). -->
+  <rect x="1" y="1" width="1198" height="758" rx="18" fill="#0a1013" stroke="#223439" stroke-width="2"/>
+
+  <!-- edges -->
+  <path d="M 420 300 C 500 300, 520 380, 600 380" fill="none" stroke="#2fc9be" stroke-width="2.5" opacity="0.85"/>
+  <path d="M 840 420 C 910 420, 930 330, 1000 330" fill="none" stroke="#334a52" stroke-width="2.5"/>
+
+  <!-- node: model (left) -->
+  <rect x="180" y="220" width="240" height="160" rx="12" fill="#121d22" stroke="#334a52" stroke-width="1.5"/>
+  <rect x="200" y="244" width="120" height="12" rx="6" fill="#243740"/>
+  <rect x="200" y="272" width="200" height="34" rx="8" fill="#0d1619"/>
+  <rect x="200" y="316" width="200" height="34" rx="8" fill="#0d1619"/>
+  <circle cx="420" cy="300" r="7" fill="#0a1013" stroke="#2fc9be" stroke-width="2.5"/>
+
+  <!-- node: running (center) -->
+  <rect x="600" y="300" width="240" height="160" rx="12" fill="#121d22" stroke="#2fc9be" stroke-width="1.5"/>
+  <circle cx="600" cy="380" r="7" fill="#2fc9be"/>
+  <rect x="620" y="324" width="140" height="12" rx="6" fill="#243740"/>
+  <rect x="620" y="352" width="200" height="66" rx="8" fill="#0d1619"/>
+  <circle cx="663" cy="385" r="5" fill="#e5b54a"/>
+  <rect x="682" y="379" width="96" height="12" rx="6" fill="#1c2c33"/>
+  <circle cx="840" cy="420" r="7" fill="#0a1013" stroke="#5f757a" stroke-width="2.5"/>
+
+  <!-- node: result (right) -->
+  <rect x="1000" y="260" width="150" height="140" rx="12" fill="#121d22" stroke="#334a52" stroke-width="1.5"/>
+  <circle cx="1000" cy="330" r="7" fill="#0a1013" stroke="#5f757a" stroke-width="2.5"/>
+  <rect x="1016" y="276" width="118" height="88" rx="8" fill="#1c2c33"/>
+  <circle cx="1075" cy="320" r="18" fill="none" stroke="#43cf97" stroke-width="2.5"/>
+  <path d="M 1067 320 L 1073 327 L 1084 312" fill="none" stroke="#43cf97" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- terminal strip (bottom) -->
+  <rect x="180" y="560" width="970" height="120" rx="12" fill="#121d22" stroke="#223439" stroke-width="1.5"/>
+  <circle cx="208" cy="586" r="4" fill="#43cf97"/>
+  <rect x="224" y="580" width="180" height="12" rx="6" fill="#243740"/>
+  <rect x="204" y="612" width="420" height="10" rx="5" fill="#1c2c33"/>
+  <rect x="204" y="634" width="300" height="10" rx="5" fill="#1c2c33"/>
+  <rect x="512" y="634" width="10" height="12" fill="#2fc9be"/>
+
+  <text x="600" y="512" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="20" fill="#5f757a">canvas preview_</text>
+</svg>
