@@ -1,8 +1,10 @@
-use super::elevenlabs_api::{parse_subscription, SubscriptionBalance};
+use super::elevenlabs_api::{parse_subscription, parse_voices, SubscriptionBalance, VoiceSummary};
 use super::secrets::ApiKey;
 use serde_json::Value;
+use std::time::Duration;
 
 pub const DEFAULT_BASE_URL: &str = "https://api.elevenlabs.io";
+const READ_TIMEOUT: Duration = Duration::from_secs(15);
 
 pub struct ElevenLabsClient {
     base_url: String,
@@ -13,12 +15,22 @@ impl ElevenLabsClient {
     pub fn with_base_url(base_url: impl Into<String>) -> Self {
         Self {
             base_url: base_url.into().trim_end_matches('/').to_string(),
-            http: reqwest::Client::new(),
+            http: reqwest::Client::builder()
+                .timeout(READ_TIMEOUT)
+                .build()
+                .expect("ElevenLabs read-only HTTP client must be constructible"),
         }
     }
 
+    fn url(&self, path: &str) -> Result<String, String> {
+        if !path.starts_with('/') || path.starts_with("//") || path.contains("://") {
+            return Err("eleven-validation: invalid ElevenLabs relative path".into());
+        }
+        Ok(format!("{}{path}", self.base_url))
+    }
+
     pub async fn get_subscription(&self, key: &ApiKey) -> Result<SubscriptionBalance, String> {
-        let url = format!("{}/v1/user/subscription", self.base_url);
+        let url = self.url("/v1/user/subscription")?;
         let response = self
             .http
             .get(url)
@@ -43,6 +55,34 @@ impl ElevenLabsClient {
             format!("eleven-subscription-invalid: invalid subscription response: {error}")
         })?;
         parse_subscription(&body)
+    }
+
+    pub async fn get_voices(&self, key: &ApiKey) -> Result<Vec<VoiceSummary>, String> {
+        let url = self.url("/v2/voices")?;
+        let response = self
+            .http
+            .get(url)
+            .header("xi-api-key", key.as_str())
+            .header(reqwest::header::ACCEPT, "application/json")
+            .send()
+            .await
+            .map_err(|error| {
+                key.redact(format!("eleven-validation: voices request failed: {error}"))
+            })?;
+        let status = response.status();
+        if status == reqwest::StatusCode::UNAUTHORIZED {
+            return Err("eleven-key-invalid: ElevenLabs rejected the API key".into());
+        }
+        if !status.is_success() {
+            return Err(format!(
+                "eleven-validation: voices request failed (HTTP {})",
+                status.as_u16()
+            ));
+        }
+        let body = response.json::<Value>().await.map_err(|error| {
+            format!("eleven-voices-invalid: invalid voices response: {error}")
+        })?;
+        parse_voices(&body)
     }
 }
 
@@ -141,4 +181,21 @@ mod tests {
         assert_eq!(error, "eleven-validation: subscription request failed (HTTP 500)");
         assert!(!error.contains("do not surface this body"));
     }
+
+    #[tokio::test]
+    async fn voices_client_uses_json_accept_header_and_query() {
+        let fixture: Value =
+            serde_json::from_str(include_str!("fixtures/eleven-voices.min.json")).unwrap();
+        let server = FakeHttpServer::new(200, &fixture.to_string());
+        let key = ApiKey::new("fake-key-for-local-test").unwrap();
+        let voices = ElevenLabsClient::with_base_url(&server.base_url)
+            .get_voices(&key)
+            .await
+            .unwrap();
+        assert_eq!(voices.len(), 3);
+        let request = server.request();
+        assert!(request.starts_with("GET /v2/voices HTTP/1.1"));
+        assert!(request.to_ascii_lowercase().contains("accept: application/json"));
+    }
+
 }

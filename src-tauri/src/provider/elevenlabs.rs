@@ -1,5 +1,6 @@
 use super::connection::ProviderStatusDto;
-use super::elevenlabs_api::SubscriptionBalance;
+use super::elevenlabs_api::{SubscriptionBalance, VoiceSummary};
+use super::elevenlabs_catalog;
 use super::elevenlabs_client::{ElevenLabsClient, DEFAULT_BASE_URL};
 use super::secrets::ApiKey;
 use serde::{Deserialize, Serialize};
@@ -22,6 +23,8 @@ pub struct ElevenLabs {
     api: ElevenLabsClient,
     api_key: Mutex<Option<ApiKey>>,
     balance: Mutex<Option<f64>>,
+    voices: Mutex<Option<Vec<VoiceSummary>>>,
+    catalog_checked: Mutex<bool>,
 }
 
 impl ElevenLabs {
@@ -30,11 +33,14 @@ impl ElevenLabs {
     }
 
     pub fn with_base_url(app_data_dir: PathBuf, base_url: impl Into<String>) -> Self {
+        let base_url = base_url.into();
         let provider = Self {
             app_data_dir,
-            api: ElevenLabsClient::with_base_url(base_url),
+            api: ElevenLabsClient::with_base_url(base_url.clone()),
             api_key: Mutex::new(None),
             balance: Mutex::new(None),
+            voices: Mutex::new(None),
+            catalog_checked: Mutex::new(false),
         };
         let key = provider.load_api_key();
         if let Ok(mut slot) = provider.api_key.try_lock() {
@@ -47,10 +53,32 @@ impl ElevenLabs {
         self.app_data_dir.join("creds").join("elevenlabs.json")
     }
 
+    fn voices_cache_path(&self) -> PathBuf {
+        self.app_data_dir.join("catalog").join("elevenlabs-voices.json")
+    }
+
     fn load_api_key(&self) -> Option<ApiKey> {
         let text = std::fs::read_to_string(self.credentials_path()).ok()?;
         let credentials: StoredCredentials = serde_json::from_str(&text).ok()?;
         ApiKey::new(credentials.api_key).ok()
+    }
+
+    fn read_voices_cache(&self) -> Option<Vec<VoiceSummary>> {
+        let text = std::fs::read_to_string(self.voices_cache_path()).ok()?;
+        let value: serde_json::Value = serde_json::from_str(&text).ok()?;
+        serde_json::from_value(value.get("voices")?.clone()).ok()
+    }
+
+    fn write_voices_cache(&self, voices: &[VoiceSummary]) {
+        let path = self.voices_cache_path();
+        if let Some(parent) = path.parent() {
+            let _ = std::fs::create_dir_all(parent);
+        }
+        let value = serde_json::json!({
+            "schemaVersion": 1,
+            "voices": voices,
+        });
+        let _ = std::fs::write(path, value.to_string());
     }
 
     fn save_api_key(&self, key: &ApiKey) -> Result<(), String> {
@@ -119,6 +147,7 @@ impl ElevenLabs {
         self.save_api_key(&key)?;
         *self.api_key.lock().await = Some(key);
         *self.balance.lock().await = Some(remaining_credits);
+        self.invalidate_catalog().await;
         Ok(self.status().await)
     }
 
@@ -138,12 +167,48 @@ impl ElevenLabs {
         let _ = std::fs::remove_file(self.credentials_path());
         *self.api_key.lock().await = None;
         *self.balance.lock().await = None;
+        self.invalidate_catalog().await;
         Ok(())
     }
 
-    pub fn catalog(&self, _refresh: bool) -> Result<serde_json::Value, String> {
-        Err("eleven-validation: ElevenLabs catalog is not available in this phase".into())
+    pub async fn invalidate_catalog(&self) {
+        *self.catalog_checked.lock().await = false;
+        *self.voices.lock().await = None;
+        let _ = std::fs::remove_file(self.voices_cache_path());
     }
+
+    pub async fn catalog(&self, refresh: bool) -> Result<serde_json::Value, String> {
+        let checked = *self.catalog_checked.lock().await;
+        if !refresh && checked {
+            let voices = self.voices.lock().await.clone().unwrap_or_default();
+            return Ok(elevenlabs_catalog::catalog(&voices));
+        }
+
+        let key = self.api_key.lock().await.clone();
+        let mut fallback = self.voices.lock().await.clone();
+        if fallback.is_none() {
+            fallback = self.read_voices_cache();
+        }
+
+        if let Some(key) = key {
+            match self.api.get_voices(&key).await {
+                Ok(voices) => {
+                    self.write_voices_cache(&voices);
+                    *self.voices.lock().await = Some(voices.clone());
+                    *self.catalog_checked.lock().await = true;
+                    return Ok(elevenlabs_catalog::catalog(&voices));
+                }
+                Err(error) => {
+                    log::warn!("ElevenLabs voice catalog fetch failed; using cache: {error}");
+                }
+            }
+        }
+
+        *self.voices.lock().await = fallback.clone();
+        *self.catalog_checked.lock().await = true;
+        Ok(elevenlabs_catalog::catalog(&fallback.unwrap_or_default()))
+    }
+
 }
 
 #[cfg(test)]
@@ -280,6 +345,37 @@ mod tests {
         provider.disconnect().await.unwrap();
         assert!(!dir.join("creds/elevenlabs.json").exists());
         assert_eq!(provider.status().await.state, "disconnected");
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[tokio::test]
+    async fn voice_cache_falls_back_to_disk_and_is_invalidated() {
+        let dir = test_dir("voice-cache");
+        let _ = std::fs::remove_dir_all(&dir);
+        let server = FakeHttpServer::new(500, r#"{"detail":"temporary"}"#);
+        let provider = ElevenLabs::with_base_url(dir.clone(), &server.base_url);
+        let voice = VoiceSummary {
+            voice_id: "cached-voice".into(),
+            name: "Cached Voice".into(),
+            category: Some("fictitious".into()),
+        };
+        provider.write_voices_cache(std::slice::from_ref(&voice));
+        *provider.api_key.lock().await = Some(ApiKey::new("fake-cache-key").unwrap());
+        let catalog = provider.catalog(false).await.unwrap();
+        assert_eq!(
+            catalog[0]["parameters"][1]["options"][0],
+            serde_json::json!({"label": "Cached Voice", "value": "cached-voice"})
+        );
+        assert!(!serde_json::to_string(&catalog).unwrap().contains("preview"));
+
+        provider.invalidate_catalog().await;
+        assert!(!provider.voices_cache_path().exists());
+        *provider.api_key.lock().await = None;
+        let fallback_catalog = provider.catalog(false).await.unwrap();
+        assert_eq!(
+            fallback_catalog[0]["parameters"][1]["default"],
+            elevenlabs_catalog::DEFAULT_VOICE_ID
+        );
         let _ = std::fs::remove_dir_all(dir);
     }
 }

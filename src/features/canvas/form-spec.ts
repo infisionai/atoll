@@ -1,5 +1,5 @@
 import type { PortValueType } from './graph/connect-rules'
-import type { ModelSpec, ParamSpec } from './model-spec'
+import type { ModelSpec, ParamOption, ParamSpec } from './model-spec'
 
 /** Parameter spec → form control decisions. All pure functions — unit test targets */
 
@@ -25,7 +25,7 @@ export interface FieldSpec {
   /** Whether to attach an input port — only prompts (text instructions) and media are connectable. Scalar attributes are false */
   connectable: boolean
   description?: string
-  options?: string[]
+  options?: Array<string | ParamOption>
   min?: number
   max?: number
   default?: unknown
@@ -73,7 +73,7 @@ export function paramToField(p: ParamSpec): FieldSpec {
           options: p.options,
         }
       }
-      return { ...base, kind: isPromptLike(p) ? 'textarea' : 'text' }
+      return { ...base, kind: p.format === 'textarea' || isPromptLike(p) ? 'textarea' : 'text' }
   }
 }
 

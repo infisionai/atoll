@@ -2,13 +2,18 @@
 
 export type ParamType = 'string' | 'number' | 'bool' | 'string_array'
 
+export interface ParamOption {
+  label: string
+  value: string
+}
+
 export interface ParamSpec {
   name: string
   required: 'required' | 'optional'
   type: ParamType
   description?: string
   default?: unknown
-  options?: string[]
+  options?: Array<string | ParamOption>
   min?: number
   max?: number
   format?: string

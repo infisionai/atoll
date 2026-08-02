@@ -55,10 +55,18 @@ export function App() {
 
   const providers = useMemo(
     () =>
-      buildProviders(catalog.data ?? []).map((p) => ({
-        ...p,
-        connected: prov.statuses.find((s) => s.id === p.id)?.state === 'connected',
-      })),
+      buildProviders(catalog.data ?? [])
+        // ElevenLabs is native and its catalog is meaningful only after the API key connects.
+        // Keep the existing locked tabs for the three MCP providers unchanged.
+        .filter(
+          (p) =>
+            p.id !== 'elevenlabs' ||
+            prov.statuses.find((s) => s.id === p.id)?.state === 'connected',
+        )
+        .map((p) => ({
+          ...p,
+          connected: prov.statuses.find((s) => s.id === p.id)?.state === 'connected',
+        })),
     [catalog.data, prov.statuses],
   )
 

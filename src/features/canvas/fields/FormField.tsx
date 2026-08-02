@@ -2,6 +2,7 @@ import { IconLink, IconUpload, IconWand } from '../../../shared/icons'
 import { useRef, useState } from 'react'
 import { Port, type PortConfig } from '../Port'
 import type { FieldSpec } from '../form-spec'
+import type { ParamOption } from '../model-spec'
 import { VoiceField } from './VoiceField'
 import styles from './FormField.module.css'
 
@@ -18,6 +19,14 @@ const ACCEPT: Record<string, string> = {
   image: 'image/*',
   video: 'video/*',
   audio: 'audio/*',
+}
+
+function optionValue(option: string | ParamOption): string {
+  return typeof option === 'string' ? option : option.value
+}
+
+function optionLabel(option: string | ParamOption): string {
+  return typeof option === 'string' ? option : option.label
 }
 
 /** Normalize a media field value to an array — accepts legacy single values too */
@@ -147,13 +156,13 @@ function Control({
         <div className={styles.segment} role="radiogroup">
           {field.options?.map((opt) => (
             <button
-              key={opt}
+              key={optionValue(opt)}
               type="button"
               className={styles.segmentButton}
-              data-selected={value === opt}
-              onClick={() => set(value === opt ? undefined : opt)}
+              data-selected={value === optionValue(opt)}
+              onClick={() => set(value === optionValue(opt) ? undefined : optionValue(opt))}
             >
-              {opt}
+              {optionLabel(opt)}
             </button>
           ))}
         </div>
@@ -170,8 +179,8 @@ function Control({
           >
             <option value="">None</option>
             {field.options?.map((opt) => (
-              <option key={opt} value={opt}>
-                {opt}
+              <option key={optionValue(opt)} value={optionValue(opt)}>
+                {optionLabel(opt)}
               </option>
             ))}
           </select>

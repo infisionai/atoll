@@ -3,6 +3,7 @@
 pub mod connection;
 pub mod elevenlabs;
 pub mod elevenlabs_api;
+pub mod elevenlabs_catalog;
 pub mod elevenlabs_client;
 pub mod higgsfield;
 pub mod jobs;
@@ -81,7 +82,7 @@ impl Provider {
             Provider::Higgsfield(p) => p.catalog(refresh).await,
             Provider::Magnific(p) => p.catalog(refresh).await,
             Provider::Kling(p) => p.catalog(refresh).await,
-            Provider::ElevenLabs(p) => p.catalog(refresh),
+            Provider::ElevenLabs(p) => p.catalog(refresh).await,
         }
     }
 
@@ -100,8 +101,8 @@ impl Provider {
     pub async fn invalidate_catalog(&self) {
         if let Provider::Kling(kling) = self {
             kling.invalidate_catalog().await;
-        } else if let Provider::ElevenLabs(_) = self {
-            // Native catalog invalidation is introduced with the voice cache in E2.
+        } else if let Provider::ElevenLabs(provider) = self {
+            provider.invalidate_catalog().await;
         }
     }
 
