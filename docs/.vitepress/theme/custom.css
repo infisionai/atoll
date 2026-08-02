@@ -1,0 +1,106 @@
+/**
+ * Atoll deep-sea theme for VitePress.
+ * Dark is the native habitat — values are the app tokens from src/shared/global.css.
+ * Light exists for reading accessibility and derives the same lagoon hue family.
+ */
+
+/* ── Brand (both modes) ─────────────────────────────────────────── */
+:root {
+  --vp-c-brand-1: #0e8a80; /* lagoon, darkened for contrast on light */
+  --vp-c-brand-2: #12a396;
+  --vp-c-brand-3: #2fc9be;
+  --vp-c-brand-soft: rgba(47, 201, 190, 0.14);
+
+  --vp-button-brand-bg: #12a396;
+  --vp-button-brand-text: #04211e;
+  --vp-button-brand-hover-bg: #2fc9be;
+  --vp-button-brand-hover-text: #04211e;
+  --vp-button-brand-active-bg: #0e8a80;
+
+  /* Status hues shared with the app */
+  --vp-c-warning-1: #a87f1f;
+  --vp-c-warning-soft: rgba(229, 181, 74, 0.14);
+  --vp-c-danger-1: #d4573f;
+  --vp-c-danger-soft: rgba(255, 122, 102, 0.14);
+  --vp-c-tip-1: var(--vp-c-brand-1);
+  --vp-c-tip-soft: var(--vp-c-brand-soft);
+}
+
+/* ── Light (lagoon-tinted, accessibility mode) ──────────────────── */
+:root {
+  --vp-c-bg: #f6fafa;
+  --vp-c-bg-alt: #ecf2f2;
+  --vp-c-bg-elv: #ffffff;
+  --vp-c-bg-soft: #ecf2f2;
+
+  --vp-c-divider: #d7e2e2;
+  --vp-c-border: #c2d2d2;
+  --vp-c-gutter: #d7e2e2;
+
+  --vp-c-text-1: #17282b;
+  --vp-c-text-2: #46595d;
+  --vp-c-text-3: #6b7f83;
+}
+
+/* ── Dark = the app itself ──────────────────────────────────────── */
+.dark {
+  /* Surface ladder: canvas → surface → raised → overlay */
+  --vp-c-bg: #0a1013;
+  --vp-c-bg-alt: #121d22;
+  --vp-c-bg-elv: #243740;
+  --vp-c-bg-soft: #121d22;
+
+  --vp-c-divider: #223439;
+  --vp-c-border: #334a52;
+  --vp-c-gutter: #0a1013;
+
+  --vp-c-text-1: #eaf4f4;
+  --vp-c-text-2: #9ab2b5;
+  --vp-c-text-3: #5f757a;
+
+  /* Lagoon reads brighter against the abyss */
+  --vp-c-brand-1: #2fc9be;
+  --vp-c-brand-2: #7be8de;
+  --vp-c-brand-3: #2fc9be;
+
+  --vp-c-warning-1: #e5b54a;
+  --vp-c-danger-1: #ff7a66;
+
+  --vp-code-block-bg: #0d1619;
+}
+
+/* ── Hero: the one display-mono moment (mirrors the app's `workspaces_`) ── */
+.VPHero .name {
+  font-family: var(--vp-font-family-mono);
+  letter-spacing: -0.02em;
+  color: var(--vp-c-text-1);
+}
+
+.VPHero .name::after {
+  content: '_';
+  color: var(--vp-c-text-3);
+}
+
+.VPHero .text {
+  font-weight: 600;
+}
+
+/* Quiet surfaces: soft cards sit one step above the abyss, never glow */
+.dark .VPFeature {
+  background: #121d22;
+  border: 1px solid #223439;
+}
+
+.dark .VPFeature:hover {
+  border-color: #334a52;
+}
+
+/* Reduced motion is a first-class citizen, same as the app */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
