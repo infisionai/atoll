@@ -18,6 +18,9 @@ pub mod magnific_catalog;
 pub mod oauth;
 pub mod secrets;
 
+#[cfg(test)]
+mod elevenlabs_integration;
+
 use connection::ProviderStatusDto;
 use serde_json::Value;
 use std::sync::Arc;
@@ -255,10 +258,8 @@ mod tests {
 
     #[test]
     fn native_estimate_dispatch_uses_a_local_marker() {
-        let dir = std::env::temp_dir().join(format!(
-            "atoll-elevenlabs-estimate-{}",
-            std::process::id()
-        ));
+        let dir =
+            std::env::temp_dir().join(format!("atoll-elevenlabs-estimate-{}", std::process::id()));
         let provider = Provider::ElevenLabs(elevenlabs::ElevenLabs::new(dir.clone()));
         let (tool, args) = provider
             .estimate_call(

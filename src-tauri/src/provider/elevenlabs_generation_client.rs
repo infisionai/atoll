@@ -80,11 +80,19 @@ pub struct ElevenLabsGenerationClient {
 }
 
 impl ElevenLabsGenerationClient {
+    #[allow(dead_code)]
     pub fn with_base_url(base_url: impl Into<String>) -> Self {
+        Self::with_base_url_and_timeout(base_url, GENERATION_TIMEOUT)
+    }
+
+    pub(crate) fn with_base_url_and_timeout(
+        base_url: impl Into<String>,
+        timeout: Duration,
+    ) -> Self {
         Self {
             base_url: base_url.into().trim_end_matches('/').to_string(),
             http: reqwest::Client::builder()
-                .timeout(GENERATION_TIMEOUT)
+                .timeout(timeout)
                 .build()
                 .expect("ElevenLabs generation HTTP client must be constructible"),
         }

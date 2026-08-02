@@ -397,13 +397,7 @@ fn spawn_native_generation(
                         spawn_native_balance_refresh(&app, Arc::clone(&provider));
                     }
                     Err(error) => {
-                        finish_native_failure(
-                            &app,
-                            &job_id,
-                            &workspace_id,
-                            &node_id,
-                            error,
-                        );
+                        finish_native_failure(&app, &job_id, &workspace_id, &node_id, error);
                         spawn_native_balance_refresh(&app, Arc::clone(&provider));
                     }
                 }
@@ -468,8 +462,10 @@ fn write_native_media(
         .app_data_dir()
         .map_err(|error| format!("eleven-cache: unable to locate media cache: {error}"))?
         .join("media");
-    crate::provider::elevenlabs_cache::write_audio_bytes_atomic(&directory, job_id, bytes, extension)
-        .map(|path| path.to_string_lossy().into_owned())
+    crate::provider::elevenlabs_cache::write_audio_bytes_atomic(
+        &directory, job_id, bytes, extension,
+    )
+    .map(|path| path.to_string_lossy().into_owned())
 }
 
 /// Resolve an ElevenLabs running row after restart. Native generation has no remote job id to poll.

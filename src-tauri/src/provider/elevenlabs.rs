@@ -32,6 +32,7 @@ pub struct ElevenLabs {
     catalog_checked: Mutex<bool>,
 }
 
+#[derive(Debug)]
 pub struct AudioResult {
     pub bytes: Vec<u8>,
     pub extension: &'static str,
@@ -43,11 +44,26 @@ impl ElevenLabs {
     }
 
     pub fn with_base_url(app_data_dir: PathBuf, base_url: impl Into<String>) -> Self {
+        Self::with_base_url_and_timeout(
+            app_data_dir,
+            base_url,
+            super::elevenlabs_generation_client::GENERATION_TIMEOUT,
+        )
+    }
+
+    pub(crate) fn with_base_url_and_timeout(
+        app_data_dir: PathBuf,
+        base_url: impl Into<String>,
+        generation_timeout: std::time::Duration,
+    ) -> Self {
         let base_url = base_url.into();
         let provider = Self {
             app_data_dir,
             api: ElevenLabsClient::with_base_url(base_url.clone()),
-            generation: ElevenLabsGenerationClient::with_base_url(base_url),
+            generation: ElevenLabsGenerationClient::with_base_url_and_timeout(
+                base_url,
+                generation_timeout,
+            ),
             api_key: Mutex::new(None),
             balance: Mutex::new(None),
             voices: Mutex::new(None),
