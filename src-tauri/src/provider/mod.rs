@@ -3,8 +3,10 @@
 pub mod connection;
 pub mod elevenlabs;
 pub mod elevenlabs_api;
+pub mod elevenlabs_cache;
 pub mod elevenlabs_catalog;
 pub mod elevenlabs_client;
+pub mod elevenlabs_cost;
 pub mod elevenlabs_generation_client;
 pub mod elevenlabs_requests;
 pub mod higgsfield;
@@ -181,7 +183,10 @@ impl Provider {
             // Kling MCP has no pre-estimate tool. Never work around this via submit.
             Provider::Kling(_) => kling::Kling::estimate_call(kind, params)
                 .map(|(t, a)| (t.to_string(), a)),
-            Provider::ElevenLabs(_) => Err("eleven-validation: ElevenLabs estimates are not available yet".into()),
+            Provider::ElevenLabs(_) => Ok((
+                "elevenlabs-local-estimate".into(),
+                params.clone(),
+            )),
         }
     }
 
@@ -245,6 +250,27 @@ mod tests {
         let provider = Provider::ElevenLabs(elevenlabs::ElevenLabs::new(dir.clone()));
         let error = provider.status_call("job-1").unwrap_err();
         assert!(error.starts_with("eleven-validation"));
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn native_estimate_dispatch_uses_a_local_marker() {
+        let dir = std::env::temp_dir().join(format!(
+            "atoll-elevenlabs-estimate-{}",
+            std::process::id()
+        ));
+        let provider = Provider::ElevenLabs(elevenlabs::ElevenLabs::new(dir.clone()));
+        let (tool, args) = provider
+            .estimate_call(
+                "audio",
+                &json!({
+                    "model": "elevenlabs/tts/eleven_multilingual_v2",
+                    "text": "offline"
+                }),
+            )
+            .unwrap();
+        assert_eq!(tool, "elevenlabs-local-estimate");
+        assert_eq!(args["text"], "offline");
         let _ = std::fs::remove_dir_all(dir);
     }
 }

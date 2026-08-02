@@ -108,7 +108,8 @@ fn tts_model(model: &str, name: &str, voices: &[Value], default_model: bool) -> 
         "provider_name": "ElevenLabs",
         "provider_tool": "tts",
         "provider_model": model,
-        "supports_estimate": false,
+        "supports_estimate": true,
+        "estimate_unit": "credits",
         "description": "Text to speech",
         "output_type": "audio",
         "parameters": [
@@ -136,7 +137,8 @@ fn music_model() -> Value {
         "provider_name": "ElevenLabs",
         "provider_tool": "music",
         "provider_model": "music_v2",
-        "supports_estimate": false,
+        "supports_estimate": true,
+        "estimate_unit": "credits",
         "description": "Music generation",
         "output_type": "audio",
         "parameters": [
@@ -157,7 +159,8 @@ fn sfx_model() -> Value {
         "provider_name": "ElevenLabs",
         "provider_tool": "sfx",
         "provider_model": "eleven_text_to_sound_v2",
-        "supports_estimate": false,
+        "supports_estimate": true,
+        "estimate_unit": "credits",
         "description": "Sound effects generation",
         "output_type": "audio",
         "parameters": [
@@ -213,6 +216,9 @@ mod tests {
         assert_eq!(music["parameters"][1]["min"], 3000);
         assert_eq!(music["parameters"][1]["max"], 600000);
         assert_eq!(models[0]["parameters"][1]["default"], DEFAULT_VOICE_ID);
+        assert!(models.as_array().unwrap().iter().all(|model| {
+            model["supports_estimate"] == true && model["estimate_unit"] == "credits"
+        }));
     }
 
     #[test]

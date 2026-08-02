@@ -171,6 +171,10 @@ pub async fn estimate_cost(
     let mut params = params;
     enrich_media_urls(&store, &mut params);
     p.prepare_params(&mut params).await?;
+    if p.is_native() {
+        let _ = p.estimate_call(&kind, &params)?;
+        return crate::provider::elevenlabs_cost::estimate(&kind, &params);
+    }
     let (tool, args) = p.estimate_call(&kind, &params)?;
     let payload = p.poll_tool_call(&tool, args).await?;
     // higgsfield: cost.credits / magnific (simulate_cost): response keys vary, so fall back to the shared extractor
@@ -377,6 +381,7 @@ fn spawn_native_generation(
                                 &node_id,
                                 "eleven-cache: unable to record the local result path".into(),
                             );
+                            spawn_native_balance_refresh(&app, Arc::clone(&provider));
                             return;
                         }
                         emit_job(
@@ -389,13 +394,33 @@ fn spawn_native_generation(
                             Some(path),
                             None,
                         );
+                        spawn_native_balance_refresh(&app, Arc::clone(&provider));
                     }
                     Err(error) => {
-                        finish_native_failure(&app, &job_id, &workspace_id, &node_id, error)
+                        finish_native_failure(
+                            &app,
+                            &job_id,
+                            &workspace_id,
+                            &node_id,
+                            error,
+                        );
+                        spawn_native_balance_refresh(&app, Arc::clone(&provider));
                     }
                 }
             }
-            Err(error) => finish_native_failure(&app, &job_id, &workspace_id, &node_id, error),
+            Err(error) => {
+                finish_native_failure(&app, &job_id, &workspace_id, &node_id, error);
+                spawn_native_balance_refresh(&app, Arc::clone(&provider));
+            }
+        }
+    });
+}
+
+fn spawn_native_balance_refresh(app: &AppHandle, provider: Arc<crate::provider::Provider>) {
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move {
+        if provider.refresh_balance().await.is_ok() {
+            let _ = app.emit("provider/balance-changed", provider.status().await);
         }
     });
 }
@@ -407,11 +432,18 @@ fn finish_native_failure(
     node_id: &str,
     error: String,
 ) {
+    let message = if error.starts_with("eleven-cache:") {
+        format!(
+            "{error}; audio was generated but could not be saved; credits were likely already spent"
+        )
+    } else {
+        error
+    };
     update_job_row(
         app,
         job_id,
         "failed",
-        &serde_json::json!({"error": error.clone()}),
+        &serde_json::json!({"error": message.clone()}),
     );
     emit_job(
         app,
@@ -421,7 +453,7 @@ fn finish_native_failure(
         "failed",
         vec![],
         None,
-        Some(error),
+        Some(message),
     );
 }
 
@@ -436,44 +468,8 @@ fn write_native_media(
         .app_data_dir()
         .map_err(|error| format!("eleven-cache: unable to locate media cache: {error}"))?
         .join("media");
-    std::fs::create_dir_all(&directory)
-        .map_err(|error| format!("eleven-cache: unable to create media cache: {error}"))?;
-    let safe_id: String = job_id
-        .chars()
-        .filter(|character| {
-            character.is_ascii_alphanumeric() || *character == '-' || *character == '_'
-        })
-        .take(64)
-        .collect();
-    if safe_id.is_empty() {
-        return Err("eleven-cache: invalid job id".into());
-    }
-    let extension = if extension.is_empty() {
-        "bin"
-    } else {
-        extension
-    };
-    let destination = directory.join(format!("{safe_id}.{extension}"));
-    let temporary = directory.join(format!(".{safe_id}.{extension}.tmp"));
-    let _ = std::fs::remove_file(&temporary);
-    let write_result = (|| -> Result<(), String> {
-        let mut file = std::fs::OpenOptions::new()
-            .write(true)
-            .create_new(true)
-            .open(&temporary)
-            .map_err(|error| format!("eleven-cache: unable to create temporary result: {error}"))?;
-        use std::io::Write;
-        file.write_all(bytes)
-            .and_then(|_| file.sync_all())
-            .map_err(|error| format!("eleven-cache: unable to write result: {error}"))?;
-        drop(file);
-        std::fs::rename(&temporary, &destination)
-            .map_err(|error| format!("eleven-cache: unable to commit result: {error}"))
-    })();
-    if write_result.is_err() {
-        let _ = std::fs::remove_file(&temporary);
-    }
-    write_result.map(|_| destination.to_string_lossy().into_owned())
+    crate::provider::elevenlabs_cache::write_audio_bytes_atomic(&directory, job_id, bytes, extension)
+        .map(|path| path.to_string_lossy().into_owned())
 }
 
 /// Resolve an ElevenLabs running row after restart. Native generation has no remote job id to poll.

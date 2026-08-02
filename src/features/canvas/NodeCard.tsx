@@ -134,7 +134,7 @@ export function NodeCard({
             title="Pre-run estimate — click to check again"
             onClick={onEstimate}
           >
-            ⚡ {formatCredits(estimate)} cr
+            ⚡ {formatCredits(estimate)} {model.estimate_unit ?? 'cr'}
           </button>
         ) : (
           <button
