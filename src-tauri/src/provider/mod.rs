@@ -1,6 +1,7 @@
 //! Provider connection layer — OAuth, tokens, and balance + multi-provider registry
 
 pub mod connection;
+pub mod elevenlabs_api;
 pub mod higgsfield;
 pub mod jobs;
 pub mod kling;
@@ -8,8 +9,9 @@ pub mod kling_catalog;
 pub mod magnific;
 pub mod magnific_catalog;
 pub mod oauth;
+pub mod secrets;
 
-use connection::McpConnection;
+use connection::ProviderStatusDto;
 use serde_json::Value;
 use std::sync::Arc;
 
@@ -21,17 +23,48 @@ pub enum Provider {
 }
 
 impl Provider {
-    /// All shared behavior (connect, tokens, tool_call, balance) goes through this
-    pub fn conn(&self) -> &McpConnection {
+    pub fn id(&self) -> &'static str {
         match self {
-            Provider::Higgsfield(p) => &p.conn,
-            Provider::Magnific(p) => &p.conn,
-            Provider::Kling(p) => &p.conn,
+            Provider::Higgsfield(p) => p.conn.id(),
+            Provider::Magnific(p) => p.conn.id(),
+            Provider::Kling(p) => p.conn.id(),
         }
     }
 
-    pub fn id(&self) -> &'static str {
-        self.conn().id()
+    /// Shared connection surface. Native providers implement this dispatch without exposing
+    /// their transport through commands.
+    pub async fn status(&self) -> ProviderStatusDto {
+        match self {
+            Provider::Higgsfield(p) => p.conn.status().await,
+            Provider::Magnific(p) => p.conn.status().await,
+            Provider::Kling(p) => p.conn.status().await,
+        }
+    }
+
+    pub async fn connect(&self) -> Result<ProviderStatusDto, String> {
+        match self {
+            Provider::Higgsfield(p) => p.conn.connect().await,
+            Provider::Magnific(p) => p.conn.connect().await,
+            Provider::Kling(p) => p.conn.connect().await,
+        }
+    }
+
+    pub async fn disconnect(&self) -> Result<(), String> {
+        match self {
+            Provider::Higgsfield(p) => p.conn.disconnect().await,
+            Provider::Magnific(p) => p.conn.disconnect().await,
+            Provider::Kling(p) => p.conn.disconnect().await,
+        }
+    }
+
+    /// Read-only MCP call used for status polling and estimates. This is a dispatch seam for
+    /// native providers; billable submission uses submit_tool_call separately.
+    pub async fn poll_tool_call(&self, tool: &str, args: Value) -> Result<Value, String> {
+        match self {
+            Provider::Higgsfield(p) => p.conn.tool_call(tool, args).await,
+            Provider::Magnific(p) => p.conn.tool_call(tool, args).await,
+            Provider::Kling(p) => p.conn.tool_call(tool, args).await,
+        }
     }
 
     /// Model catalog (cache-first)
@@ -74,7 +107,8 @@ impl Provider {
     pub async fn submit_tool_call(&self, tool: &str, args: Value) -> Result<Value, String> {
         match self {
             Provider::Kling(p) => p.conn.tool_call_no_replay(tool, args).await,
-            _ => self.conn().tool_call(tool, args).await,
+            Provider::Higgsfield(p) => p.conn.tool_call(tool, args).await,
+            Provider::Magnific(p) => p.conn.tool_call(tool, args).await,
         }
     }
 
@@ -120,6 +154,29 @@ impl Provider {
             Provider::Magnific(_) => magnific::Magnific::status_call(job_id),
             Provider::Kling(_) => kling::Kling::status_call(job_id),
         }
+    }
+
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[tokio::test]
+    async fn existing_provider_status_dispatch_keeps_oauth_contract() {
+        let dir = std::env::temp_dir().join(format!("atoll-provider-dispatch-{}", std::process::id()));
+        let providers = [
+            Provider::Higgsfield(higgsfield::Higgsfield::new(dir.clone())),
+            Provider::Magnific(magnific::Magnific::new(dir.clone())),
+            Provider::Kling(kling::Kling::new(dir.clone())),
+        ];
+        for provider in &providers {
+            let status = provider.status().await;
+            assert_eq!(status.auth_kind, "oauth");
+            assert_eq!(serde_json::to_value(status).unwrap()["authKind"], json!("oauth"));
+        }
+        let _ = std::fs::remove_dir_all(dir);
     }
 }
 

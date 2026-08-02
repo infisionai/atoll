@@ -61,6 +61,8 @@ pub struct ProviderStatusDto {
     pub name: String,
     /// disconnected | connecting | connected | expired
     pub state: String,
+    /// oauth | api_key
+    pub auth_kind: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub account: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -159,6 +161,7 @@ impl McpConnection {
             id: self.config.id.into(),
             name: self.config.name.into(),
             state: state.into(),
+            auth_kind: "oauth".into(),
             account: creds.account.clone(),
             balance: *self.balance.lock().await,
             pricing_url: self.config.pricing_url.into(),

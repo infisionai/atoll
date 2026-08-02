@@ -127,7 +127,7 @@ pub async fn estimate_cost(
     enrich_media_urls(&store, &mut params);
     p.prepare_params(&mut params).await?;
     let (tool, args) = p.estimate_call(&kind, &params)?;
-    let payload = p.conn().tool_call(&tool, args).await?;
+    let payload = p.poll_tool_call(&tool, args).await?;
     // higgsfield: cost.credits / magnific (simulate_cost): response keys vary, so fall back to the shared extractor
     payload
         .pointer("/cost/credits")
@@ -223,7 +223,7 @@ pub fn spawn_job_poll(
                 }
             };
             let (tool, args) = p.status_call(&job_id);
-            let result = p.conn().tool_call(tool, args).await;
+            let result = p.poll_tool_call(tool, args).await;
 
             match result {
                 Ok(payload) => match classify_status(&payload) {
@@ -241,7 +241,7 @@ pub fn spawn_job_poll(
                         emit_job(&app, &job_id, &workspace_id, &node_id, "done", urls, local, None);
                         // Credits were deducted — refetch the balance and push (balance refreshes on job completion)
                         if p.refresh_balance().await.is_ok() {
-                            let _ = app.emit("provider/balance-changed", p.conn().status().await);
+                            let _ = app.emit("provider/balance-changed", p.status().await);
                         }
                         break;
                     }
@@ -250,7 +250,7 @@ pub fn spawn_job_poll(
                         update_job_row(&app, &job_id, "failed", &payload);
                         emit_job(&app, &job_id, &workspace_id, &node_id, "failed", vec![], None, Some(msg));
                         if p.refresh_balance().await.is_ok() {
-                            let _ = app.emit("provider/balance-changed", p.conn().status().await);
+                            let _ = app.emit("provider/balance-changed", p.status().await);
                         }
                         break;
                     }
@@ -364,7 +364,7 @@ pub async fn list_providers(
 ) -> Result<Vec<ProviderStatusDto>, String> {
     let mut out = Vec::with_capacity(state.0 .0.len());
     for p in &state.0 .0 {
-        out.push(p.conn().status().await);
+        out.push(p.status().await);
     }
     Ok(out)
 }
@@ -376,8 +376,8 @@ pub async fn connect_provider(
     id: String,
 ) -> Result<ProviderStatusDto, String> {
     let p = state.0.by_id(&id)?;
-    let result = p.conn().connect().await;
-    let status = p.conn().status().await;
+    let result = p.connect().await;
+    let status = p.status().await;
     let _ = app.emit("provider/status-changed", status.clone());
     result?;
     p.invalidate_catalog().await;
@@ -391,9 +391,9 @@ pub async fn disconnect_provider(
     id: String,
 ) -> Result<(), String> {
     let p = state.0.by_id(&id)?;
-    p.conn().disconnect().await?;
+    p.disconnect().await?;
     p.invalidate_catalog().await;
-    let _ = app.emit("provider/status-changed", p.conn().status().await);
+    let _ = app.emit("provider/status-changed", p.status().await);
     Ok(())
 }
 
@@ -426,6 +426,6 @@ pub async fn refresh_balance(
 ) -> Result<f64, String> {
     let p = state.0.by_id(&id)?;
     let balance = p.refresh_balance().await?;
-    let _ = app.emit("provider/balance-changed", p.conn().status().await);
+    let _ = app.emit("provider/balance-changed", p.status().await);
     Ok(balance)
 }
