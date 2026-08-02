@@ -137,7 +137,8 @@ pub fn build_music_request(params: &Value) -> Result<MusicCall, String> {
             "output_format",
         ],
     )?;
-    let music_length_ms = optional_u64(params, "music_length_ms", 3_000, 600_000)?;
+    let music_length_ms =
+        Some(optional_u64(params, "music_length_ms", 3_000, 600_000)?.unwrap_or(10_000));
     Ok(MusicCall {
         output_format: output_format(params, true)?,
         request: MusicRequest {
@@ -167,7 +168,9 @@ pub fn build_sfx_request(params: &Value) -> Result<SfxCall, String> {
         request: SfxRequest {
             text: required_string(params, "text")?,
             model_id: model,
-            duration_seconds: bounded_optional(params, "duration_seconds", 0.5, 30.0)?,
+            duration_seconds: Some(
+                bounded_optional(params, "duration_seconds", 0.5, 30.0)?.unwrap_or(5.0),
+            ),
             prompt_influence: bounded_optional(params, "prompt_influence", 0.0, 1.0)?,
             loop_: optional_bool(params, "loop")?,
         },
@@ -320,7 +323,7 @@ mod tests {
     }
 
     #[test]
-    fn builds_music_and_sfx_with_optional_fields_omitted() {
+    fn builds_music_and_sfx_with_explicit_default_lengths() {
         let music = build_music_request(&json!({
             "model": "elevenlabs/music/music_v2",
             "prompt": "quiet piano",
@@ -331,9 +334,10 @@ mod tests {
             serde_json::to_value(&music.request).unwrap()["model_id"],
             "music_v2"
         );
-        assert!(!serde_json::to_string(&music.request)
-            .unwrap()
-            .contains("music_length"));
+        assert_eq!(
+            serde_json::to_value(&music.request).unwrap()["music_length_ms"],
+            10_000
+        );
 
         let sfx = build_sfx_request(&json!({
             "model": "elevenlabs/sfx/eleven_text_to_sound_v2",
@@ -341,6 +345,7 @@ mod tests {
         }))
         .unwrap();
         assert_eq!(sfx.request.json()["text"], "rain");
+        assert_eq!(sfx.request.json()["duration_seconds"], 5.0);
         assert!(!sfx.request.json().as_object().unwrap().contains_key("loop"));
     }
 

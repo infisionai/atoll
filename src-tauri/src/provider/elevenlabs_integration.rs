@@ -8,13 +8,11 @@ use crate::store::SqliteStore;
 use serde_json::{json, Value};
 use std::collections::VecDeque;
 use std::io::{Read, Write};
-use std::net::TcpListener;
+use std::net::{TcpListener, TcpStream};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
 use std::time::Duration;
-
-static INTEGRATION_TEST_LOCK: Mutex<()> = Mutex::new(());
 
 struct FakeResponse {
     status: u16,
@@ -77,83 +75,38 @@ impl FakeHttpServer {
         let thread_paths = Arc::clone(&paths);
         let thread_stop = Arc::clone(&stop);
         let thread = std::thread::spawn(move || {
+            let mut workers = Vec::new();
             while !thread_stop.load(Ordering::Relaxed) {
                 match listener.accept() {
-                    Ok((mut stream, _)) => {
-                        let mut request = Vec::with_capacity(8192);
-                        let mut chunk = [0u8; 1024];
-                        let mut header_complete = false;
-                        while request.len() < 8192 {
-                            match stream.read(&mut chunk) {
-                                Ok(0) => break,
-                                Ok(size) => {
-                                    request.extend_from_slice(&chunk[..size]);
-                                    if request.windows(4).any(|window| window == b"\r\n\r\n") {
-                                        header_complete = true;
-                                        break;
-                                    }
-                                }
-                                Err(error)
-                                    if error.kind() == std::io::ErrorKind::TimedOut
-                                        || error.kind() == std::io::ErrorKind::WouldBlock =>
-                                {
-                                    break;
-                                }
-                                Err(_) => break,
-                            }
-                        }
-                        if request.is_empty() || !header_complete {
-                            continue;
-                        }
-                        let first_line = String::from_utf8_lossy(&request)
-                            .lines()
-                            .next()
-                            .unwrap_or_default()
-                            .to_string();
-                        let path = first_line.split_whitespace().nth(1).unwrap_or_default();
-                        let path_without_query = path.split('?').next().unwrap_or(path);
-                        thread_paths
-                            .lock()
-                            .unwrap()
-                            .push(path_without_query.to_string());
-                        thread_requests.fetch_add(1, Ordering::Relaxed);
-                        if path_without_query.starts_with("/v1/text-to-speech/")
-                            || path_without_query == "/v1/music"
-                            || path_without_query == "/v1/sound-generation"
-                        {
-                            thread_generations.fetch_add(1, Ordering::Relaxed);
-                        }
-                        let response = thread_responses
-                            .lock()
-                            .unwrap()
-                            .pop_front()
-                            .expect("fake server received an unexpected request");
-                        if response.hold_connection {
-                            for _ in 0..200 {
-                                if thread_stop.load(Ordering::Relaxed) {
-                                    break;
-                                }
-                                std::thread::sleep(Duration::from_millis(1));
-                            }
-                            continue;
-                        }
-                        let reason = if response.status < 400 { "OK" } else { "Error" };
-                        write!(
-                            stream,
-                            "HTTP/1.1 {} {}\r\nContent-Type: {}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
-                            response.status,
-                            reason,
-                            response.content_type,
-                            response.body.len()
-                        )
-                        .unwrap();
-                        stream.write_all(&response.body).unwrap();
+                    Ok((stream, _)) => {
+                        let responses = Arc::clone(&thread_responses);
+                        let requests = Arc::clone(&thread_requests);
+                        let generations = Arc::clone(&thread_generations);
+                        let paths = Arc::clone(&thread_paths);
+                        let stop = Arc::clone(&thread_stop);
+                        workers.push(std::thread::spawn(move || {
+                            serve_fake_connection(
+                                stream,
+                                responses,
+                                requests,
+                                generations,
+                                paths,
+                                stop,
+                            );
+                        }));
                     }
                     Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
                         std::thread::sleep(Duration::from_millis(1));
                     }
-                    Err(error) => panic!("fake HTTP listener failed: {error}"),
+                    Err(error) => {
+                        if error.kind() != std::io::ErrorKind::Interrupted {
+                            std::thread::sleep(Duration::from_millis(1));
+                        }
+                    }
                 }
+            }
+            for worker in workers {
+                worker.join().unwrap();
             }
         });
         Self {
@@ -176,6 +129,154 @@ impl FakeHttpServer {
 
     fn paths(&self) -> Vec<String> {
         self.paths.lock().unwrap().clone()
+    }
+}
+
+fn serve_fake_connection(
+    mut stream: TcpStream,
+    responses: Arc<Mutex<VecDeque<FakeResponse>>>,
+    requests: Arc<AtomicUsize>,
+    generations: Arc<AtomicUsize>,
+    paths: Arc<Mutex<Vec<String>>>,
+    stop: Arc<AtomicBool>,
+) {
+    let _ = stream.set_nonblocking(false);
+    let _ = stream.set_read_timeout(Some(Duration::from_secs(1)));
+    let mut request = Vec::with_capacity(8192);
+    let mut chunk = [0u8; 1024];
+    let header_end = loop {
+        if let Some(position) = request.windows(4).position(|window| window == b"\r\n\r\n") {
+            break Some(position + 4);
+        }
+        if request.len() >= 8192 {
+            break None;
+        }
+        match stream.read(&mut chunk) {
+            Ok(0) => break None,
+            Ok(size) => {
+                request.extend_from_slice(&chunk[..size]);
+            }
+            Err(error)
+                if error.kind() == std::io::ErrorKind::TimedOut
+                    || error.kind() == std::io::ErrorKind::WouldBlock =>
+            {
+                break None;
+            }
+            Err(_) => break None,
+        }
+    };
+    let Some(header_end) = header_end else {
+        return;
+    };
+    let content_length = String::from_utf8_lossy(&request[..header_end])
+        .lines()
+        .find_map(|line| {
+            let (name, value) = line.split_once(':')?;
+            name.eq_ignore_ascii_case("content-length")
+                .then(|| value.trim().parse::<usize>().ok())
+        })
+        .flatten()
+        .unwrap_or(0);
+    let chunked = String::from_utf8_lossy(&request[..header_end])
+        .lines()
+        .any(|line| {
+            let Some((name, value)) = line.split_once(':') else {
+                return false;
+            };
+            name.eq_ignore_ascii_case("transfer-encoding")
+                && value
+                    .split(',')
+                    .any(|encoding| encoding.trim().eq_ignore_ascii_case("chunked"))
+        });
+    let request_length = header_end.saturating_add(content_length);
+    while (chunked && !chunked_body_complete(&request, header_end))
+        || (!chunked && request.len() < request_length)
+    {
+        match stream.read(&mut chunk) {
+            Ok(0) => break,
+            Ok(size) => request.extend_from_slice(&chunk[..size]),
+            Err(error)
+                if error.kind() == std::io::ErrorKind::TimedOut
+                    || error.kind() == std::io::ErrorKind::WouldBlock =>
+            {
+                break;
+            }
+            Err(_) => break,
+        }
+    }
+    if (!chunked && request.len() < request_length)
+        || (chunked && !chunked_body_complete(&request, header_end))
+    {
+        return;
+    }
+
+    let first_line = String::from_utf8_lossy(&request)
+        .lines()
+        .next()
+        .unwrap_or_default()
+        .to_string();
+    let path = first_line.split_whitespace().nth(1).unwrap_or_default();
+    let path_without_query = path.split('?').next().unwrap_or(path);
+    paths.lock().unwrap().push(path_without_query.to_string());
+    requests.fetch_add(1, Ordering::Relaxed);
+    if path_without_query.starts_with("/v1/text-to-speech/")
+        || path_without_query == "/v1/music"
+        || path_without_query == "/v1/sound-generation"
+    {
+        generations.fetch_add(1, Ordering::Relaxed);
+    }
+
+    let response = responses.lock().unwrap().pop_front();
+    let Some(response) = response else {
+        return;
+    };
+    if response.hold_connection {
+        for _ in 0..200 {
+            if stop.load(Ordering::Relaxed) {
+                break;
+            }
+            std::thread::sleep(Duration::from_millis(1));
+        }
+        return;
+    }
+    let reason = if response.status < 400 { "OK" } else { "Error" };
+    let _ = write!(
+        stream,
+        "HTTP/1.1 {} {}\r\nContent-Type: {}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+        response.status,
+        reason,
+        response.content_type,
+        response.body.len()
+    );
+    let _ = stream.write_all(&response.body);
+}
+
+fn chunked_body_complete(request: &[u8], body_start: usize) -> bool {
+    let mut cursor = body_start;
+    loop {
+        let Some(relative_end) = request[cursor..]
+            .windows(2)
+            .position(|window| window == b"\r\n")
+        else {
+            return false;
+        };
+        let line_end = cursor + relative_end;
+        let size = String::from_utf8_lossy(&request[cursor..line_end])
+            .split(';')
+            .next()
+            .and_then(|value| usize::from_str_radix(value.trim(), 16).ok());
+        let Some(size) = size else {
+            return false;
+        };
+        cursor = line_end + 2;
+        if size == 0 {
+            return request.len() >= cursor + 2;
+        }
+        let data_end = cursor.saturating_add(size);
+        if request.len() < data_end + 2 || &request[data_end..data_end + 2] != b"\r\n" {
+            return false;
+        }
+        cursor = data_end + 2;
     }
 }
 
@@ -247,7 +348,6 @@ fn generation_params() -> [(String, Value); 3] {
 
 #[tokio::test]
 async fn mock_end_to_end_flow_validates_reads_catalog_generates_saves_and_persists_done() {
-    let _test_guard = INTEGRATION_TEST_LOCK.lock().unwrap();
     let directory = temp_dir("success");
     let _ = std::fs::remove_dir_all(&directory);
     let server = FakeHttpServer::new(success_responses());
@@ -315,7 +415,6 @@ async fn mock_end_to_end_flow_validates_reads_catalog_generates_saves_and_persis
 
 #[tokio::test]
 async fn mock_failures_never_retry_and_validation_failures_never_submit() {
-    let _test_guard = INTEGRATION_TEST_LOCK.lock().unwrap();
     let validation_server =
         FakeHttpServer::new(vec![FakeResponse::json(401, r#"{"detail":"invalid key"}"#)]);
     let validation_dir = temp_dir("validation-401");
@@ -361,21 +460,25 @@ async fn mock_failures_never_retry_and_validation_failures_never_submit() {
         let directory = temp_dir(&format!("generation-{label}"));
         let provider = ElevenLabs::with_base_url(directory.clone(), &server.base_url);
         provider.set_api_key("fake-generation-key").await.unwrap();
-        assert!(provider
+        let generation_error = provider
             .generate(
                 "audio",
                 &json!({
                     "model": "elevenlabs/sfx/eleven_text_to_sound_v2",
                     "text": "fake failure",
                     "duration_seconds": 0.5
-                })
+                }),
             )
             .await
-            .is_err());
+            .unwrap_err();
+        assert!(
+            generation_error.starts_with("eleven-"),
+            "status {status} error: {generation_error}"
+        );
         assert_eq!(
             server.generations(),
             1,
-            "status {status} was retried; requests={} paths={:?}",
+            "status {status} was not submitted; error={generation_error}; requests={} paths={:?}",
             server.requests(),
             server.paths()
         );
@@ -399,7 +502,12 @@ async fn mock_failures_never_retry_and_validation_failures_never_submit() {
         )
         .await
         .unwrap_err();
-    assert!(empty_error.starts_with("eleven-result-empty"));
+    assert!(
+        empty_error.starts_with("eleven-result-empty"),
+        "empty result error: {empty_error}; requests={} paths={:?}",
+        empty_server.requests(),
+        empty_server.paths()
+    );
     assert_eq!(
         empty_server.generations(),
         1,

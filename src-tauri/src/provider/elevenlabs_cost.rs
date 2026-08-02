@@ -15,11 +15,15 @@ const TTS_STANDARD_CREDITS_PER_CHARACTER: f64 = 1.0;
 const TTS_FLASH_TURBO_CREDITS_PER_CHARACTER: f64 = 0.5;
 // Source: https://elevenlabs.io/pricing (checked 2026-08-02): Eleven Music is
 // approximately 900 credits per minute, or 15 credits per generated second.
+// The request builder sends the ten-second default explicitly when omitted so
+// the wire request and this estimate remain aligned.
 const MUSIC_CREDITS_PER_SECOND: f64 = 15.0;
 // Source: https://elevenlabs.io/docs/help-center/product/content-production/sound-effects/how-much-does-it-cost-to-generate-sound-effects
 // (checked 2026-08-02): API sound effects with an explicit duration cost 11
-// credits per second. The estimate policy supplies a five-second default when
-// the form leaves duration unspecified.
+// credits per second, while automatic duration (duration omitted) costs 100
+// credits per generation. The request builder always sends the five-second
+// default explicitly, so the estimate uses the deterministic 11-credit rate
+// instead of the automatic-duration charge.
 const SFX_CREDITS_PER_SECOND: f64 = 11.0;
 
 pub fn estimate(kind: &str, params: &Value) -> Result<f64, String> {

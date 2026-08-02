@@ -143,7 +143,7 @@ fn music_model() -> Value {
         "output_type": "audio",
         "parameters": [
             {"name": "prompt", "required": "required", "type": "string", "format": "textarea"},
-            {"name": "music_length_ms", "required": "optional", "type": "number", "min": 3000, "max": 600000},
+            {"name": "music_length_ms", "required": "optional", "type": "number", "default": 10000, "min": 3000, "max": 600000},
             {"name": "force_instrumental", "required": "optional", "type": "bool"},
             {"name": "output_format", "required": "optional", "type": "string", "default": DEFAULT_OUTPUT_FORMAT, "options": output_formats(true)},
         ],
@@ -165,7 +165,7 @@ fn sfx_model() -> Value {
         "output_type": "audio",
         "parameters": [
             {"name": "text", "required": "required", "type": "string", "format": "textarea"},
-            {"name": "duration_seconds", "required": "optional", "type": "number", "min": 0.5, "max": 30},
+            {"name": "duration_seconds", "required": "optional", "type": "number", "default": 5, "min": 0.5, "max": 30},
             {"name": "prompt_influence", "required": "optional", "type": "number", "min": 0, "max": 1},
             {"name": "loop", "required": "optional", "type": "bool"},
             {"name": "output_format", "required": "optional", "type": "string", "default": DEFAULT_OUTPUT_FORMAT, "options": output_formats(false)},
@@ -215,6 +215,9 @@ mod tests {
         let music = &models.as_array().unwrap()[4];
         assert_eq!(music["parameters"][1]["min"], 3000);
         assert_eq!(music["parameters"][1]["max"], 600000);
+        assert_eq!(music["parameters"][1]["default"], 10000);
+        let sfx = &models.as_array().unwrap()[5];
+        assert_eq!(sfx["parameters"][1]["default"], 5);
         assert_eq!(models[0]["parameters"][1]["default"], DEFAULT_VOICE_ID);
         assert!(models.as_array().unwrap().iter().all(|model| {
             model["supports_estimate"] == true && model["estimate_unit"] == "credits"
