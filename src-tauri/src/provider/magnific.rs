@@ -22,6 +22,15 @@ pub struct Magnific {
     pub conn: McpConnection,
 }
 
+/// Batch count from the form value — sliders send numbers, segments send numeric strings
+fn numeric_count(v: Option<&Value>) -> Option<u64> {
+    match v? {
+        Value::Number(n) => n.as_u64().or_else(|| n.as_f64().map(|f| f as u64)),
+        Value::String(s) => s.parse::<u64>().ok(),
+        _ => None,
+    }
+}
+
 /// Extract a Magnific creation identifier from the response shapes returned by the upload tool.
 fn parse_creation_identifier(payload: &Value) -> Option<String> {
     const KEYS: [&str; 6] = [
@@ -136,6 +145,13 @@ impl Magnific {
         if let Some(res) = params.get("resolution").and_then(|v| v.as_str()) {
             if res != "auto" {
                 args.insert("resolution".into(), json!(res));
+            }
+        }
+        // Batch count 1..8 — omitted at 1 so the default-path wire payload stays unchanged
+        if let Some(n) = numeric_count(params.get("count")) {
+            let n = n.clamp(1, 8);
+            if n >= 2 {
+                args.insert("count".into(), json!(n));
             }
         }
         // Upstream references — medias[{value, role}] → references[{type, identifier}].
@@ -353,6 +369,29 @@ mod tests {
             est["arguments"]["references"][0]["identifier"],
             "4RNtpok9Aa"
         );
+    }
+
+    #[test]
+    fn image_count_passes_through_only_when_batching() {
+        let batch = json!({ "model": "magnific/x", "prompt": "p", "count": "3" });
+        let (_, args) = Magnific::submit_call("image", &batch).unwrap();
+        assert_eq!(args["count"], 3);
+        let (_, est) = Magnific::estimate_call("image", &batch).unwrap();
+        assert_eq!(est["arguments"]["count"], 3);
+
+        // count 1 or absent keeps the default-path payload byte-identical
+        let single = json!({ "model": "magnific/x", "prompt": "p", "count": 1 });
+        let (_, args) = Magnific::submit_call("image", &single).unwrap();
+        assert_eq!(args.get("count"), None);
+        let (_, args) =
+            Magnific::submit_call("image", &json!({ "model": "magnific/x", "prompt": "p" }))
+                .unwrap();
+        assert_eq!(args.get("count"), None);
+
+        // Out-of-range values clamp into 1..8
+        let over = json!({ "model": "magnific/x", "prompt": "p", "count": 20 });
+        let (_, args) = Magnific::submit_call("image", &over).unwrap();
+        assert_eq!(args["count"], 8);
     }
 
     #[test]

@@ -58,6 +58,18 @@ pub fn extract_job_ids(v: &Value) -> Vec<String> {
 
 /// Collect http(s) URLs across the whole payload (for extracting result media).
 /// URLs under raw keys come first — the original beats min/thumbnail variants
+/// Media reference URL for run params — a frontend-supplied https URL wins
+/// (a gallery item 2..N shares its job id with siblings, so only the item's own URL
+/// identifies the right file); otherwise fall back to the job payload's first https URL.
+pub fn enriched_media_url(existing: Option<&str>, payload: &Value) -> Option<String> {
+    if let Some(url) = existing.filter(|u| u.starts_with("https://")) {
+        return Some(url.to_string());
+    }
+    extract_urls(payload)
+        .into_iter()
+        .find(|u| u.starts_with("https://"))
+}
+
 pub fn extract_urls(v: &Value) -> Vec<String> {
     let mut raw = Vec::new();
     let mut rest = Vec::new();
@@ -246,6 +258,25 @@ mod tests {
         let urls = extract_urls(&v);
         assert!(urls.contains(&"https://a/img.png".to_string()));
         assert!(urls.contains(&"https://b/v.mp4".to_string()));
+    }
+
+    #[test]
+    fn enriched_media_url_keeps_frontend_url_over_payload() {
+        let payload = json!({"results": [{"url": "https://a/first.png"}]});
+        assert_eq!(
+            enriched_media_url(Some("https://cdn/b.png"), &payload).as_deref(),
+            Some("https://cdn/b.png")
+        );
+        // Non-https frontend values (blob/asset) fall back to the payload
+        assert_eq!(
+            enriched_media_url(Some("blob:x"), &payload).as_deref(),
+            Some("https://a/first.png")
+        );
+        assert_eq!(
+            enriched_media_url(None, &payload).as_deref(),
+            Some("https://a/first.png")
+        );
+        assert_eq!(enriched_media_url(None, &json!({})), None);
     }
 
     #[test]
