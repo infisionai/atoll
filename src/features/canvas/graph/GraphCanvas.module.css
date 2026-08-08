@@ -7,6 +7,14 @@
   overflow: hidden;
   touch-action: none;
   user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Form fields keep their own selection rules, so a node/marquee/item drag passing
+   over them flickers text selection — hard-disable while any canvas drag is active */
+.canvas[data-dragging] :is(input, textarea) {
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .canvas[data-pan='ready'] {

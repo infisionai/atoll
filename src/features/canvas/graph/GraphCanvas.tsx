@@ -785,6 +785,10 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(funct
 
   const beginNodeDrag = (id: string, e: PointerEvent) => {
     if (spaceHeld || isInteractive(e.target)) return
+    // Block the native text-selection gesture — without this the drag flickers
+    // selection highlights across the card (and form fields it passes over)
+    e.preventDefault()
+    window.getSelection()?.removeAllRanges()
 
     let sel: Set<string>
     if (e.shiftKey) {
@@ -981,6 +985,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(funct
       ref={containerRef}
       className={styles.canvas}
       data-pan={panning && panLast.current ? 'active' : spaceHeld ? 'ready' : undefined}
+      data-dragging={panning || marquee !== null || itemDrag?.active || undefined}
       onPointerDownCapture={(e) => {
         // Space pan / middle-click pan — intercepts before children (nodes, ports)
         if (spaceHeld || e.button === 1) {
