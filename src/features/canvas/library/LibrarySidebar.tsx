@@ -1,7 +1,6 @@
 import { IconLock } from '../../../shared/icons'
 import { useMemo, useState } from 'react'
 import type { NodeDef } from '../graph/graph-build'
-import { EDIT_OPS, type EditOpId } from '../graph/edit-ops'
 import type { ProviderCatalog, ProviderId } from './providers'
 import styles from './LibrarySidebar.module.css'
 
@@ -30,18 +29,9 @@ const BASIC_NODES: Array<{ label: string; def: AddDef }> = [
   { label: 'Video asset', def: { asset: 'video' } },
 ]
 
-const OP_NODES: Array<{ id: EditOpId }> = [
-  { id: 'upscale' },
-  { id: 'remove_background' },
-  { id: 'outpaint' },
-  { id: 'voiceover' },
-  { id: 'change_voice' },
-  { id: 'translate_voice' },
-]
-
 /**
  * Library sidebar —
- * search basic nodes (assets, edit ops) and the model catalog, then add them to the canvas.
+ * search basic nodes (assets) and the model catalog, then add them to the canvas.
  * Price and duration on model cards are placeholders to be filled in later.
  */
 export function LibrarySidebar({ providers, onAdd, onOpenSettings }: LibrarySidebarProps) {
@@ -85,16 +75,6 @@ export function LibrarySidebar({ providers, onAdd, onOpenSettings }: LibrarySide
               onClick={() => onAdd(b.def)}
             >
               {b.label}
-            </button>
-          ))}
-          {OP_NODES.map(({ id }) => (
-            <button
-              key={id}
-              type="button"
-              className={styles.basicItem}
-              onClick={() => onAdd({ edit: id })}
-            >
-              {EDIT_OPS[id].name}
             </button>
           ))}
         </div>

@@ -13,11 +13,14 @@
 - Anything that actually calls an external MCP provider — **it requires login and executable tools spend real credits. Never.**
 - Tests that force private functions or internal state into the open
 
-## The one exception: the MCP client layer
+## The one exception: external protocol client layers
 
-OAuth token refresh, `Mcp-Session-Id` session keeping, and SSE response parsing can't catch protocol-ordering bugs when sliced into pure units.
-This layer alone gets a few tests against a **local fake MCP server**.
-They must run locally with no external network, and stay fast and deterministic like everything else.
+Wire-contract and protocol-ordering bugs can't be caught when sliced into pure units. Two layers qualify:
+
+- **The MCP client layer** — OAuth token refresh, `Mcp-Session-Id` session keeping, SSE response parsing. Tested against a **local fake MCP server**.
+- **Native provider HTTP clients** (e.g. the ElevenLabs client) — request paths/headers/bodies and error-body variants. Tested against a **local fake HTTP server**.
+
+Both must run locally with no external network, and stay fast and deterministic like everything else. Tests never call real provider endpoints — generation endpoints spend real credits.
 
 ## Running
 

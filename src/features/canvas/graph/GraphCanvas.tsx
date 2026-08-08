@@ -9,7 +9,6 @@ import {
   type PointerEvent,
 } from 'react'
 import { AssetNode, RESULT_IN_PORT, type AssetKind } from '../AssetNode'
-import { EDIT_IN_PORT, EditNode } from '../EditNode'
 import { NodeCard, OUT_PORT } from '../NodeCard'
 import { NodeToolbar } from '../NodeToolbar'
 import type { NodeStatus } from '../StatusBadge'
@@ -18,7 +17,6 @@ import { buildFormSpec, maxItemsOf, portTypeOf } from '../form-spec'
 import type { ModelSpec } from '../model-spec'
 import { canConnect, compatible, type PortValueType } from './connect-rules'
 import { edgeMidpoint, edgePath, type Point } from './edge-path'
-import { EDIT_OPS, type EditOpId } from './edit-ops'
 import {
   connectionsOf,
   emptyGraph,
@@ -30,6 +28,19 @@ import {
   type NodeKind,
 } from './graph-state'
 import { buildNode, type NodeDef } from './graph-build'
+import {
+  MIME_BY_KIND,
+  expectedResultCount,
+  extractedItemValues,
+  initBatchValues,
+  isBatchValues,
+  mergeJobUpdate,
+  pickMediaUrl,
+  resultName,
+  selectItem,
+  stripBatchCountParams,
+  type GalleryItem,
+} from './gallery'
 import { nodeReferenceText, nodeReferenceTokens, orderedSelection } from './node-reference'
 import { rectFromPoints, rectsIntersect } from './select'
 import { buildRunParams } from './run-params'
@@ -124,6 +135,20 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(funct
   const marqueeRef = useRef<typeof marquee>(null)
   marqueeRef.current = marquee
 
+  // Gallery item drag-out — client coords (ghost renders outside the world transform)
+  const [itemDrag, setItemDrag] = useState<{
+    nodeId: string
+    index: number
+    item: GalleryItem
+    start: Point
+    cursor: Point
+    active: boolean
+  } | null>(null)
+  const itemDragRef = useRef<typeof itemDrag>(null)
+  itemDragRef.current = itemDrag
+  // A completed drag-out must not also register as a tile click (selection change)
+  const suppressItemClick = useRef(false)
+
   const edgeKey = (e: GraphEdge) => `${e.from}→${e.to}`
 
   // Port DOM doesn't exist on first render so edges can't be drawn — redraw once after mount
@@ -156,13 +181,12 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(funct
     [catalog],
   )
 
-  /** Output port value type — asset: its asset kind, edit op: its output type, model: the model's output_type */
+  /** Output port value type — asset: its asset kind, model: the model's output_type */
   const outTypeOf = useCallback(
     (nodeId: string): PortValueType | null => {
       const n = graphRef.current.nodes[nodeId]
       if (!n) return null
       if (n.kind === 'asset') return n.ref as PortValueType
-      if (n.kind === 'edit') return EDIT_OPS[n.ref as EditOpId].output
       const model = modelOf(n)
       return model ? portTypeOf(model, OUT_PORT) : null
     },
@@ -177,9 +201,6 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(funct
       if (n.kind === 'model') {
         const model = modelOf(n)
         return model ? portTypeOf(model, portName) : null
-      }
-      if (n.kind === 'edit') {
-        return portName === EDIT_IN_PORT ? EDIT_OPS[n.ref as EditOpId].input : null
       }
       return null // Asset nodes have no input ports
     },
@@ -251,7 +272,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(funct
         if (!el) return
         const r = el.getBoundingClientRect()
         const center = screenToWorld(vpRef.current, { x: r.width / 2, y: r.height / 2 })
-        const ref = def.model ?? def.asset ?? def.edit ?? 'node'
+        const ref = def.model ?? def.asset ?? 'node'
         const id = `${ref}-${crypto.randomUUID().slice(0, 8)}`
         const node = buildNode(catalog, {
           id,
@@ -318,10 +339,44 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(funct
       dispatch({ type: 'node/setValue', id, name: '__status', value: 'running' })
       dispatch({ type: 'node/setValue', id, name: '__error', value: undefined })
 
-      return runner.submit(resultId, outType, params, model.provider).then(
+      const expected = expectedResultCount(params)
+      // Providers without a native batch param (client_batch) get N parallel submits instead;
+      // partial submit failures proceed with whatever got through
+      const submitAll: Promise<{ jobIds: string[] }> =
+        model.client_batch === true && expected > 1
+          ? Promise.allSettled(
+              Array.from({ length: expected }, () =>
+                runner.submit(resultId, outType, stripBatchCountParams(params), model.provider),
+              ),
+            ).then((results) => {
+              const jobIds = results.flatMap((r) =>
+                r.status === 'fulfilled' ? r.value.jobIds : [],
+              )
+              if (jobIds.length === 0) {
+                const failed = results.find(
+                  (r): r is PromiseRejectedResult => r.status === 'rejected',
+                )
+                throw failed?.reason instanceof Error
+                  ? failed.reason
+                  : new Error(String(failed?.reason ?? 'All submissions failed'))
+              }
+              return { jobIds }
+            })
+          : runner.submit(resultId, outType, params, model.provider)
+
+      return submitAll.then(
         ({ jobIds }) => {
           dispatch({ type: 'node/setValue', id, name: '__status', value: undefined })
-          dispatch({ type: 'node/setValue', id: resultId, name: 'jobId', value: jobIds[0] })
+          if (expected > 1 || jobIds.length > 1) {
+            // Batch — the result node becomes a gallery collecting all jobs/urls
+            dispatch({
+              type: 'node/patchValues',
+              id: resultId,
+              patch: initBatchValues(jobIds, expected, id, `Generating with ${model.name}`),
+            })
+          } else {
+            dispatch({ type: 'node/setValue', id: resultId, name: 'jobId', value: jobIds[0] })
+          }
           return { jobIds }
         },
         (e) => {
@@ -382,19 +437,13 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(funct
         if (kind === 'asset' && ref !== 'image' && ref !== 'video') {
           throw new Error('asset ref must be image or video')
         }
-        if (kind === 'edit' && !(ref in EDIT_OPS)) throw new Error(`Unknown edit op: ${ref}`)
 
         const rect = containerRef.current?.getBoundingClientRect()
         const center = rect
           ? screenToWorld(vpRef.current, { x: rect.width / 2, y: rect.height / 2 })
           : { x: 150, y: 100 }
         const id = `${ref}-${crypto.randomUUID().slice(0, 8)}`
-        const def =
-          kind === 'model'
-            ? { model: ref }
-            : kind === 'asset'
-              ? { asset: ref as AssetKind }
-              : { edit: ref as EditOpId }
+        const def = kind === 'model' ? { model: ref } : { asset: ref as AssetKind }
         const node = buildNode(catalog, {
           id,
           x: (cmd.x as number | undefined) ?? center.x - 150,
@@ -490,12 +539,86 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(funct
   /** Cancel a generating result node — stops tracking and removes the node (server credits may still be spent) */
   const cancelNode = useCallback(
     (id: string) => {
-      const jobId = graphRef.current.nodes[id]?.values.jobId as string | undefined
-      if (jobId) runner?.cancel(jobId).catch((e) => console.warn('Cancel failed:', e))
+      const values = graphRef.current.nodes[id]?.values
+      const jobIds = (values?.jobIds as string[] | undefined) ?? []
+      const single = values?.jobId as string | undefined
+      for (const jobId of jobIds.length > 0 ? jobIds : single ? [single] : []) {
+        runner?.cancel(jobId).catch((e) => console.warn('Cancel failed:', e))
+      }
       dispatch({ type: 'node/remove', ids: [id] })
     },
     [runner],
   )
+
+  // ── Gallery item drag-out — copy an item into a standalone asset node ──
+
+  const startItemDrag = useCallback((nodeId: string, index: number, e: PointerEvent) => {
+    const values = graphRef.current.nodes[nodeId]?.values
+    const item = (values?.items as (GalleryItem | null)[] | undefined)?.[index]
+    if (!item) return
+    const p = { x: e.clientX, y: e.clientY }
+    setItemDrag({ nodeId, index, item, start: p, cursor: p, active: false })
+  }, [])
+
+  useEffect(() => {
+    if (!itemDrag) return
+    const onMove = (e: globalThis.PointerEvent) => {
+      const current = itemDragRef.current
+      if (!current) return
+      const cursor = { x: e.clientX, y: e.clientY }
+      const active =
+        current.active ||
+        Math.hypot(cursor.x - current.start.x, cursor.y - current.start.y) > 4
+      setItemDrag({ ...current, cursor, active })
+    }
+    const onUp = (e: globalThis.PointerEvent) => {
+      const current = itemDragRef.current
+      setItemDrag(null)
+      if (!current?.active) return
+      suppressItemClick.current = true
+      // Dropping back onto the source gallery card cancels the extraction
+      const over = document
+        .elementFromPoint(e.clientX, e.clientY)
+        ?.closest?.('[data-node-id]') as HTMLElement | null
+      if (over?.dataset.nodeId === current.nodeId) return
+      const values = graphRef.current.nodes[current.nodeId]?.values
+      if (!values) return
+      const extracted = extractedItemValues(values, current.index)
+      if (!extracted) return
+      const src = graphRef.current.nodes[current.nodeId]!
+      const world = toWorld(e.clientX, e.clientY)
+      const id = `${src.ref}-${crypto.randomUUID().slice(0, 8)}`
+      dispatch({
+        type: 'node/add',
+        node: {
+          id,
+          kind: 'asset',
+          ref: src.ref,
+          x: world.x - 104,
+          y: world.y - 24,
+          values: extracted,
+        },
+      })
+      dispatch({ type: 'selection/set', ids: [id] })
+    }
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+    return () => {
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+    }
+  }, [itemDrag !== null, toWorld]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const selectGalleryItem = useCallback((nodeId: string, index: number) => {
+    if (suppressItemClick.current) {
+      suppressItemClick.current = false
+      return
+    }
+    const values = graphRef.current.nodes[nodeId]?.values
+    if (!values) return
+    const patch = selectItem(values, index)
+    if (patch) dispatch({ type: 'node/patchValues', id: nodeId, patch })
+  }, [])
 
   /** Export media of the selected asset nodes — currently opens in the browser; local saving is planned */
   const exportSelection = useCallback(() => {
@@ -540,6 +663,11 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(funct
     const node = graphRef.current.nodes[u.nodeId]
     // Only apply to nodes still waiting on generation — don't touch nodes already updated or changed by the user
     if (!node || node.values.generating !== true) return
+    if (isBatchValues(node.values)) {
+      const patch = mergeJobUpdate(node.values, u, node.ref)
+      if (patch) dispatch({ type: 'node/patchValues', id: u.nodeId, patch })
+      return
+    }
     if (u.status === 'done') {
       const url = pickMediaUrl(u.urls, node.ref)
       dispatch({ type: 'node/setValue', id: u.nodeId, name: 'generating', value: false })
@@ -965,7 +1093,6 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(funct
           >
             <NodeToolbar
               actions={toolbar.actions}
-              runDisabled={toolbar.runDisabled}
               onCopy={() => copySelection('token')}
               copied={copied}
               onDuplicate={duplicateSelection}
@@ -993,28 +1120,21 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(funct
               style={{ left: gn.x, top: gn.y }}
               onPointerDown={(e) => beginNodeDrag(gn.id, e)}
             >
-              {gn.kind === 'edit' ? (
-                <EditNode
-                  op={gn.ref as EditOpId}
-                  status={(gn.values.__status as NodeStatus) ?? 'idle'}
-                  values={gn.values}
-                  inputFrom={incomingByPort(graph, gn.id)[EDIT_IN_PORT]?.[0]}
-                  connectedOut={connectionsOf(graph, gn.id)[OUT_PORT]}
-                  onChange={(name, value) =>
-                    dispatch({ type: 'node/setValue', id: gn.id, name, value })
-                  }
-                  onEdgeRemove={(from) =>
-                    dispatch({ type: 'edge/remove', from, to: `${gn.id}:${EDIT_IN_PORT}` })
-                  }
-                  {...common}
-                />
-              ) : gn.kind === 'asset' ? (
+              {gn.kind === 'asset' ? (
                 <AssetNode
                   kind={gn.ref as AssetKind}
                   media={gn.values.media as MediaValue | undefined}
                   generating={gn.values.generating === true}
                   progressNote={gn.values.progressNote as string | undefined}
                   error={gn.values.error as string | undefined}
+                  items={
+                    Array.isArray(gn.values.items)
+                      ? (gn.values.items as (GalleryItem | null)[])
+                      : undefined
+                  }
+                  selectedIndex={gn.values.selected as number | undefined}
+                  onSelectItem={(i) => selectGalleryItem(gn.id, i)}
+                  onItemDragStart={(i, e) => startItemDrag(gn.id, i, e)}
                   hasInPort={gn.values.sourceNode !== undefined}
                   connectedIn={connectionsOf(graph, gn.id)[RESULT_IN_PORT]}
                   connectedOut={connectionsOf(graph, gn.id)[OUT_PORT]}
@@ -1056,6 +1176,25 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(funct
         })}
       </div>
 
+      {/* Gallery item drag-out ghost — follows the cursor outside the world transform */}
+      {itemDrag?.active &&
+        (() => {
+          const rect = containerRef.current?.getBoundingClientRect()
+          if (!rect) return null
+          return (
+            <div
+              className={styles.itemGhost}
+              style={{ left: itemDrag.cursor.x - rect.left - 36, top: itemDrag.cursor.y - rect.top - 36 }}
+            >
+              {itemDrag.item.mime.startsWith('video/') ? (
+                <video src={itemDrag.item.url} muted playsInline preload="metadata" />
+              ) : (
+                <img src={itemDrag.item.url} alt="" />
+              )}
+            </div>
+          )
+        })()}
+
       {/* View controls — zoom out / scale / zoom in / reset */}
       <div className={styles.viewBar}>
         <button
@@ -1087,36 +1226,6 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(funct
     </div>
   )
 })
-
-/** Result media mime guess — based on node kind */
-const MIME_BY_KIND: Record<string, string> = {
-  image: 'image/png',
-  video: 'video/mp4',
-  audio: 'audio/mpeg',
-  '3d': 'model/gltf-binary',
-}
-
-/** Result file name — keeps the extension visible */
-function resultName(url: string): string {
-  const ext = url.split('?')[0].split('.').pop()
-  return ext && ext.length <= 5 && /^[a-z0-9]+$/i.test(ext) ? `Generated result.${ext}` : 'Generated result'
-}
-
-/** Pick the result URL matching the node kind */
-function pickMediaUrl(urls: string[], kind: string): string | undefined {
-  const ext: Record<string, RegExp> = {
-    video: /\.(mp4|webm|mov)(\?|$)/i,
-    image: /\.(png|jpe?g|webp|gif)(\?|$)/i,
-    audio: /\.(mp3|wav|m4a|ogg|flac)(\?|$)/i,
-    '3d': /\.(glb|gltf)(\?|$)/i,
-  }
-  const preferred = ext[kind]
-  if (preferred) {
-    const hit = urls.find((u) => preferred.test(u))
-    if (hit) return hit
-  }
-  return urls[0]
-}
 
 function zoomAtViewCenter(vp: Viewport, el: HTMLElement | null, factor: number): Viewport {
   if (!el) return vp

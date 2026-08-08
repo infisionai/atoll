@@ -1,5 +1,5 @@
-import { IconHome } from '../../shared/icons'
-import { HOME_TAB, type TabState } from './tab-state'
+import { IconGear, IconHome } from '../../shared/icons'
+import { HOME_TAB, SETTINGS_TAB, type TabState } from './tab-state'
 import styles from './TabBar.module.css'
 
 interface TabBarProps {
@@ -24,37 +24,41 @@ export function TabBar({ state, names, onActivate, onClose, onNew }: TabBarProps
         data-active={state.active === HOME_TAB}
         onClick={() => onActivate(HOME_TAB)}
       >
-        <IconHome className={styles.homeIcon} />
+        <IconHome className={styles.tabIcon} />
         Home
       </button>
 
-      {state.tabs.map((id) => (
-        <div
-          key={id}
-          role="tab"
-          aria-selected={state.active === id}
-          className={styles.tab}
-          data-active={state.active === id}
-          onClick={() => onActivate(id)}
-          onPointerUp={(e) => {
-            // Middle-click to close
-            if (e.button === 1) onClose(id)
-          }}
-        >
-          <span className={styles.name}>{names[id] ?? id}</span>
-          <button
-            type="button"
-            className={styles.close}
-            aria-label={`Close ${names[id] ?? id}`}
-            onClick={(e) => {
-              e.stopPropagation()
-              onClose(id)
+      {state.tabs.map((id) => {
+        const label = id === SETTINGS_TAB ? 'Settings' : (names[id] ?? id)
+        return (
+          <div
+            key={id}
+            role="tab"
+            aria-selected={state.active === id}
+            className={styles.tab}
+            data-active={state.active === id}
+            onClick={() => onActivate(id)}
+            onPointerUp={(e) => {
+              // Middle-click to close
+              if (e.button === 1) onClose(id)
             }}
           >
-            ×
-          </button>
-        </div>
-      ))}
+            {id === SETTINGS_TAB && <IconGear className={styles.tabIcon} />}
+            <span className={styles.name}>{label}</span>
+            <button
+              type="button"
+              className={styles.close}
+              aria-label={`Close ${label}`}
+              onClick={(e) => {
+                e.stopPropagation()
+                onClose(id)
+              }}
+            >
+              ×
+            </button>
+          </div>
+        )
+      })}
 
       <button type="button" className={styles.newTab} aria-label="New space" onClick={onNew}>
         +

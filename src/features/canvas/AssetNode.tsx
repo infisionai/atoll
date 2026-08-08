@@ -12,7 +12,9 @@ import { useEffect, useRef, useState, type PointerEvent } from 'react'
 import { Port } from './Port'
 import { StatusBadge } from './StatusBadge'
 import { ModelViewer } from './ModelViewer'
+import { GalleryGrid } from './GalleryGrid'
 import type { MediaValue } from './fields/FormField'
+import type { GalleryItem } from './graph/gallery'
 import type { PortValueType } from './graph/connect-rules'
 import styles from './AssetNode.module.css'
 
@@ -62,6 +64,13 @@ interface AssetNodeProps {
   onCancel?: () => void
   onPortDown?: (portName: string, e: PointerEvent) => void
   onPortUp?: (portName: string) => void
+  /** Batch (gallery) result — present means this node renders the tile grid instead of a single preview */
+  items?: (GalleryItem | null)[]
+  /** Gallery selection — the item feeding the OUT port */
+  selectedIndex?: number
+  onSelectItem?: (index: number) => void
+  /** Drag a gallery item out — the canvas extracts it into a standalone node */
+  onItemDragStart?: (index: number, e: PointerEvent) => void
 }
 
 /** Resize width limits — a range that keeps canvas density intact */
@@ -261,6 +270,10 @@ export function AssetNode({
   onCancel,
   onPortDown,
   onPortUp,
+  items,
+  selectedIndex,
+  onSelectItem,
+  onItemDragStart,
 }: AssetNodeProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [dragOver, setDragOver] = useState(false)
@@ -337,6 +350,29 @@ export function AssetNode({
           <IconAlert className={styles.errorIcon} />
           <p className={styles.errorMessage}>{error}</p>
         </div>
+      ) : items ? (
+        <>
+          <GalleryGrid
+            items={items}
+            generating={generating}
+            selectedIndex={selectedIndex}
+            onSelect={onSelectItem}
+            onItemDragStart={onItemDragStart}
+          />
+          {generating && onCancel && (
+            <div className={styles.galleryFooter}>
+              <span className={styles.progressNote}>{progressNote ?? 'Generating…'}</span>
+              <button
+                type="button"
+                className={styles.cancel}
+                title="Stops tracking and removes the node — a generation already submitted may still use credits"
+                onClick={onCancel}
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+        </>
       ) : generating ? (
         <div className={styles.skeleton}>
           <span className={styles.progressNote}>{progressNote ?? 'Generating…'}</span>

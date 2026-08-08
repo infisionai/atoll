@@ -25,14 +25,19 @@ export function buildRunParams(state: GraphState, node: GraphNode, model: ModelS
     if (v !== undefined && v !== '') params[f.name] = v
   }
 
-  // Upstream generation results (job_id) → medias
-  const medias: Array<{ value: string; role: string }> = []
+  // Upstream generation results (job_id) → medias.
+  // The selected item's remote URL rides along so batch items 2..N (which share one job id)
+  // resolve to the right file — Rust keeps a frontend-supplied https url as-is.
+  const medias: Array<{ value: string; role: string; url?: string }> = []
   const incoming = incomingByPort(state, node.id)
   for (const f of allFields.filter((f) => f.kind === 'media')) {
     for (const from of incoming[f.name] ?? []) {
       const src = state.nodes[from.split(':')[0]]
       const jobId = src?.values.jobId as string | undefined
-      if (jobId) medias.push({ value: jobId, role: f.role ?? 'image' })
+      if (!jobId) continue
+      const media = src?.values.media as { url?: string; remoteUrl?: string } | undefined
+      const remote = [media?.remoteUrl, media?.url].find((u) => u && /^https:\/\//i.test(u))
+      medias.push({ value: jobId, role: f.role ?? 'image', ...(remote ? { url: remote } : {}) })
     }
   }
   if (medias.length > 0) params.medias = medias

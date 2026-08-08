@@ -19,10 +19,17 @@ const INITIAL: ProviderStatus[] = [
     description: 'Spaces-style upscaling · images',
   },
   { id: 'kling', name: 'Kling', state: 'expired' },
+  { id: 'elevenlabs', name: 'ElevenLabs', state: 'disconnected', authKind: 'api_key' },
 ]
 
 /** Interactive wrapper where connect/disconnect/refresh actually work (OAuth simulated with a 1.2s delay) */
-function Interactive({ initial }: { initial: ProviderStatus[] }) {
+function Interactive({
+  initial,
+  connectErrors,
+}: {
+  initial: ProviderStatus[]
+  connectErrors?: Record<string, string>
+}) {
   const [providers, setProviders] = useState(initial)
 
   const patch = (id: string, p: Partial<ProviderStatus>) =>
@@ -52,7 +59,9 @@ function Interactive({ initial }: { initial: ProviderStatus[] }) {
       </div>
       <ProviderSettings
         providers={providers}
+        connectErrors={connectErrors}
         onConnect={connect}
+        onSetApiKey={async () => {}}
         onDisconnect={async (id) => {
           await new Promise((r) => setTimeout(r, 900))
           patch(id, { state: 'disconnected', account: undefined, balance: undefined })
@@ -95,6 +104,17 @@ export const PremiumOnlyNotice: Story = {
       },
       INITIAL[2],
     ],
+  },
+}
+
+/* API-key validation failed — the reason stays visible on the card, the typed key is kept */
+export const KeyValidationError: Story = {
+  args: {
+    initial: INITIAL,
+    connectErrors: {
+      elevenlabs:
+        'eleven-key-permissions: the API key is missing required permissions — create a key with User read (balance) and Voices read access',
+    },
   },
 }
 

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { ipc } from '../../../ipc/commands'
 import type { ModelSpec } from '../model-spec'
 import { buildRunParams } from './run-params'
+import { expectedResultCount } from './gallery'
 import type { GraphState } from './graph-state'
 
 /** Per-node estimate state — number (credits) | loading | none (not fetched, value changed, or error) */
@@ -59,10 +60,12 @@ export function useCostEstimates(graph: GraphState, catalog: ModelSpec[]) {
       const signature = JSON.stringify(params)
       signatures.current[nodeId] = signature
       setEstimates((prev) => ({ ...prev, [nodeId]: 'loading' }))
+      // Client fan-out models submit N separate runs — the provider estimates a single run
+      const multiplier = model.client_batch === true ? expectedResultCount(params) : 1
       void ipc.estimateCost(kind, params, model.provider).then(
         (credits) => {
           if (signatures.current[nodeId] !== signature) return
-          setEstimates((prev) => ({ ...prev, [nodeId]: credits }))
+          setEstimates((prev) => ({ ...prev, [nodeId]: credits * multiplier }))
         },
         (e) => {
           // Unsupported providers just quietly clear the badge (marker from commands.rs)

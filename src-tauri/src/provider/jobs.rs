@@ -58,6 +58,18 @@ pub fn extract_job_ids(v: &Value) -> Vec<String> {
 
 /// Collect http(s) URLs across the whole payload (for extracting result media).
 /// URLs under raw keys come first — the original beats min/thumbnail variants
+/// Media reference URL for run params — a frontend-supplied https URL wins
+/// (a gallery item 2..N shares its job id with siblings, so only the item's own URL
+/// identifies the right file); otherwise fall back to the job payload's first https URL.
+pub fn enriched_media_url(existing: Option<&str>, payload: &Value) -> Option<String> {
+    if let Some(url) = existing.filter(|u| u.starts_with("https://")) {
+        return Some(url.to_string());
+    }
+    extract_urls(payload)
+        .into_iter()
+        .find(|u| u.starts_with("https://"))
+}
+
 pub fn extract_urls(v: &Value) -> Vec<String> {
     let mut raw = Vec::new();
     let mut rest = Vec::new();
@@ -118,14 +130,28 @@ pub fn classify_status(v: &Value) -> JobPhase {
     }
 
     let is_failed = |s: &str| {
-        ["failed", "error", "cancel", "rejected", "nsfw", "ip_detected"]
-            .iter()
-            .any(|m| s.contains(m))
+        [
+            "failed",
+            "error",
+            "cancel",
+            "rejected",
+            "nsfw",
+            "ip_detected",
+        ]
+        .iter()
+        .any(|m| s.contains(m))
     };
     let is_done = |s: &str| {
-        ["completed", "complete", "succeeded", "success", "done", "finished"]
-            .iter()
-            .any(|m| s.contains(m))
+        [
+            "completed",
+            "complete",
+            "succeeded",
+            "success",
+            "done",
+            "finished",
+        ]
+        .iter()
+        .any(|m| s.contains(m))
     };
 
     if statuses.iter().any(|s| is_failed(s)) {
@@ -148,7 +174,13 @@ pub fn poll_after_seconds(v: &Value) -> u64 {
 /// Extract the failure reason — searches the top level and the `generation` object
 pub fn failure_message(v: &Value) -> String {
     fn from(x: &Value) -> Option<String> {
-        for key in ["error", "message", "failure_reason", "failureReason", "reason"] {
+        for key in [
+            "error",
+            "message",
+            "failure_reason",
+            "failureReason",
+            "reason",
+        ] {
             match x.get(key) {
                 Some(Value::String(s)) if !s.is_empty() => return Some(s.clone()),
                 Some(Value::Object(o)) => {
@@ -182,9 +214,14 @@ mod tests {
     #[test]
     fn extract_job_ids_magnific_creations() {
         // Magnific: creation-identifier family of keys
-        assert_eq!(extract_job_ids(&json!({"creationIdentifier": "cr-1"})), vec!["cr-1"]);
         assert_eq!(
-            extract_job_ids(&json!({"creations": [{"identifier": "cr-a"}, {"identifier": "cr-b"}]})),
+            extract_job_ids(&json!({"creationIdentifier": "cr-1"})),
+            vec!["cr-1"]
+        );
+        assert_eq!(
+            extract_job_ids(
+                &json!({"creations": [{"identifier": "cr-a"}, {"identifier": "cr-b"}]})
+            ),
             vec!["cr-a", "cr-b"]
         );
     }
@@ -196,7 +233,10 @@ mod tests {
             extract_job_ids(&json!({"jobs": [{"id": "a"}, {"job_id": "b"}]})),
             vec!["a", "b"]
         );
-        assert_eq!(extract_job_ids(&json!({"job_ids": ["x", "y"]})), vec!["x", "y"]);
+        assert_eq!(
+            extract_job_ids(&json!({"job_ids": ["x", "y"]})),
+            vec!["x", "y"]
+        );
         assert!(extract_job_ids(&json!({"foo": 1})).is_empty());
     }
 
@@ -221,11 +261,42 @@ mod tests {
     }
 
     #[test]
+    fn enriched_media_url_keeps_frontend_url_over_payload() {
+        let payload = json!({"results": [{"url": "https://a/first.png"}]});
+        assert_eq!(
+            enriched_media_url(Some("https://cdn/b.png"), &payload).as_deref(),
+            Some("https://cdn/b.png")
+        );
+        // Non-https frontend values (blob/asset) fall back to the payload
+        assert_eq!(
+            enriched_media_url(Some("blob:x"), &payload).as_deref(),
+            Some("https://a/first.png")
+        );
+        assert_eq!(
+            enriched_media_url(None, &payload).as_deref(),
+            Some("https://a/first.png")
+        );
+        assert_eq!(enriched_media_url(None, &json!({})), None);
+    }
+
+    #[test]
     fn classify_status_terminal_detection() {
-        assert_eq!(classify_status(&json!({"status": "completed"})), JobPhase::Done);
-        assert_eq!(classify_status(&json!({"state": "SUCCESS"})), JobPhase::Done);
-        assert_eq!(classify_status(&json!({"status": "failed"})), JobPhase::Failed);
-        assert_eq!(classify_status(&json!({"status": "queued"})), JobPhase::Running);
+        assert_eq!(
+            classify_status(&json!({"status": "completed"})),
+            JobPhase::Done
+        );
+        assert_eq!(
+            classify_status(&json!({"state": "SUCCESS"})),
+            JobPhase::Done
+        );
+        assert_eq!(
+            classify_status(&json!({"status": "failed"})),
+            JobPhase::Failed
+        );
+        assert_eq!(
+            classify_status(&json!({"status": "queued"})),
+            JobPhase::Running
+        );
         assert_eq!(classify_status(&json!({})), JobPhase::Running);
     }
 
@@ -233,7 +304,9 @@ mod tests {
     fn classify_status_nested_generation() {
         // Real job_status response shape
         assert_eq!(
-            classify_status(&json!({"generation": {"status": "completed"}, "poll_after_seconds": 3})),
+            classify_status(
+                &json!({"generation": {"status": "completed"}, "poll_after_seconds": 3})
+            ),
             JobPhase::Done
         );
         assert_eq!(
@@ -282,7 +355,9 @@ mod tests {
         );
         // Magnific creation_status shape as verified against the live server (camelCase)
         assert_eq!(
-            failure_message(&json!({"creationIdentifier": "c", "status": "failed", "failureReason": "NSFW: Content detected"})),
+            failure_message(
+                &json!({"creationIdentifier": "c", "status": "failed", "failureReason": "NSFW: Content detected"})
+            ),
             "NSFW: Content detected"
         );
         assert_eq!(

@@ -56,37 +56,6 @@ export const AssetSource: Story = {
   ),
 }
 
-/* Edit chain — asset → upscale → background removal, with the lineage kept in the graph */
-export const EditChain: Story = {
-  args: story(
-    [
-      { id: 'src', asset: 'image', x: 40, y: 120 },
-      { id: 'up', edit: 'upscale', x: 340, y: 90 },
-      { id: 'bg', edit: 'remove_background', x: 660, y: 130 },
-      { id: 'ex', edit: 'outpaint', x: 340, y: 380 },
-    ],
-    [
-      { from: 'src:__out', to: 'up:input' },
-      { from: 'up:__out', to: 'bg:input' },
-    ],
-  ),
-}
-
-/* Audio chain — voiceover (source-style) → change voice (⚡2) → translate voice (⚡45) */
-export const AudioChain: Story = {
-  args: story(
-    [
-      { id: 'vo', edit: 'voiceover', x: 40, y: 80 },
-      { id: 'cv', edit: 'change_voice', x: 360, y: 110 },
-      { id: 'tr', edit: 'translate_voice', x: 680, y: 140 },
-    ],
-    [
-      { from: 'vo:__out', to: 'cv:input' },
-      { from: 'cv:__out', to: 'tr:input' },
-    ],
-  ),
-}
-
 /* Multi-reference input — outputs of two nodes stack as connection tiles in flux.2's reference image tile row */
 export const MultiReference: Story = {
   args: story(

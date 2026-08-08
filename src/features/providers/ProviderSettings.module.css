@@ -100,6 +100,27 @@
   margin-right: auto;
 }
 
+.keyInput {
+  min-width: 240px;
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--bg-canvas);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: var(--text-xs);
+}
+
+.keyHelp {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  text-decoration: none;
+}
+
+.keyHelp:hover {
+  color: var(--text-secondary);
+}
+
 /* Notice when connected but usage is restricted (e.g. premium-only) */
 .notice {
   font-size: var(--text-xs);
@@ -141,18 +162,4 @@
   border-color: var(--accent-coral);
   color: var(--accent-coral);
   background: none;
-}
-
-.back {
-  justify-self: start;
-  border: none;
-  background: none;
-  color: var(--text-muted);
-  font-size: var(--text-xs);
-  cursor: pointer;
-  padding: 0;
-}
-
-.back:hover {
-  color: var(--text-secondary);
 }

@@ -92,7 +92,10 @@ pub fn catalog_from_payload(payload: &Value) -> Result<Value, String> {
             .or_else(|| available.get(tool_key_camel(tool)));
         for model in model_values(group) {
             if let Some(spec) = model_spec(model, tool) {
-                if !models.iter().any(|existing: &Value| existing["id"] == spec["id"]) {
+                if !models
+                    .iter()
+                    .any(|existing: &Value| existing["id"] == spec["id"])
+                {
                     models.push(spec);
                 }
             }
@@ -185,8 +188,7 @@ fn model_spec(model: &Value, tool: KlingTool) -> Option<Value> {
         "aspect_ratios": first_array(model, &["aspectRatios", "aspect_ratios"]).unwrap_or_default(),
         "tags": ["kling", tool.as_str()],
     });
-    // The first-pass UI/result node can safely represent only a single output.
-    clamp_result_count(&mut spec["parameters"]);
+    normalize_result_count(&mut spec["parameters"]);
     Some(spec)
 }
 
@@ -229,15 +231,20 @@ fn argument_specs(model: &Value) -> Vec<Value> {
 }
 
 fn argument_spec(raw: &Value, fallback_name: Option<&str>) -> Option<Value> {
-    let name = first_string(raw, &["name", "key", "id"])
-        .or_else(|| fallback_name.map(str::to_string))?;
+    let name =
+        first_string(raw, &["name", "key", "id"]).or_else(|| fallback_name.map(str::to_string))?;
     let required = raw
         .get("required")
         .or_else(|| raw.get("isRequired"))
         .map(value_bool)
         .unwrap_or(false);
     let options = first_array(raw, &["allowedValues", "allowed_values", "options", "enum"])
-        .map(|items| items.into_iter().map(|v| scalar_string(&v)).collect::<Vec<_>>())
+        .map(|items| {
+            items
+                .into_iter()
+                .map(|v| scalar_string(&v))
+                .collect::<Vec<_>>()
+        })
         .filter(|items: &Vec<String>| !items.is_empty());
     let type_name = first_string(raw, &["type", "valueType", "value_type"])
         .unwrap_or_else(|| infer_type(raw, options.as_ref()));
@@ -296,9 +303,10 @@ fn media_specs(model: &Value, tool: KlingTool) -> Vec<Value> {
             .unwrap_or(false);
 
         if let Some(index) = numbered_image_index(&name) {
-            if let Some(existing) = specs.iter_mut().find(|s| {
-                s.get("name").and_then(Value::as_str) == Some("reference_images")
-            }) {
+            if let Some(existing) = specs
+                .iter_mut()
+                .find(|s| s.get("name").and_then(Value::as_str) == Some("reference_images"))
+            {
                 existing["provider_inputs"]
                     .as_array_mut()
                     .expect("provider_inputs array")
@@ -337,24 +345,26 @@ fn media_specs(model: &Value, tool: KlingTool) -> Vec<Value> {
     specs
 }
 
-fn clamp_result_count(parameters: &mut Value) {
-    let Some(items) = parameters.as_array_mut() else { return };
-    // Story mode is not part of the first-pass generation/polling contract, so it is not exposed in the UI.
+fn normalize_result_count(parameters: &mut Value) {
+    let Some(items) = parameters.as_array_mut() else {
+        return;
+    };
+    // Story mode is not part of the generation/polling contract, so it is not exposed in the UI.
     items.retain(|item| item.get("name").and_then(Value::as_str) != Some("story_mode"));
     for item in items {
-        let Some(name) = item
-            .get("name")
-            .and_then(Value::as_str)
-            .map(str::to_string)
-        else {
+        let Some(name) = item.get("name").and_then(Value::as_str).map(str::to_string) else {
             continue;
         };
         if matches!(name.as_str(), "imageCount" | "image_count" | "count") {
-            item["default"] = json!(1);
-            item["options"] = json!(["1"]);
-            item["min"] = json!(1);
-            item["max"] = json!(1);
-            item["description"] = json!("The first version supports a single result only");
+            // Server min/max pass through (images 1–9, video 1–4); guarantee a floor and default
+            if item.get("default").is_none() {
+                item["default"] = json!(1);
+            }
+            if item.get("min").is_none() {
+                item["min"] = json!(1);
+            }
+            // Some models mis-describe this field (e.g. as a quality tier) — normalize the label
+            item["description"] = json!("Number of results per run");
         }
     }
 }
@@ -410,9 +420,12 @@ fn first_array(value: &Value, keys: &[&str]) -> Option<Vec<Value>> {
 }
 
 fn first_number(value: &Value, keys: &[&str]) -> Option<f64> {
-    keys.iter().find_map(|key| value.get(*key).and_then(|v| {
-        v.as_f64().or_else(|| v.as_str().and_then(|s| s.parse().ok()))
-    }))
+    keys.iter().find_map(|key| {
+        value.get(*key).and_then(|v| {
+            v.as_f64()
+                .or_else(|| v.as_str().and_then(|s| s.parse().ok()))
+        })
+    })
 }
 
 fn value_bool(value: &Value) -> bool {
@@ -440,7 +453,8 @@ fn find_number_by_keys(value: &Value, keys: &[&str], depth: usize) -> Option<f64
     if let Value::Object(obj) = value {
         for key in keys {
             if let Some(number) = obj.get(*key).and_then(|v| {
-                v.as_f64().or_else(|| v.as_str().and_then(|s| s.parse().ok()))
+                v.as_f64()
+                    .or_else(|| v.as_str().and_then(|s| s.parse().ok()))
             }) {
                 return Some(number);
             }
@@ -472,7 +486,7 @@ mod tests {
     }
 
     #[test]
-    fn normalizes_mode_specific_models_and_clamps_count() {
+    fn normalizes_mode_specific_models_and_keeps_count_range() {
         let payload = json!({
             "availableModels": {
                 "text_to_image": {"models": [{
@@ -496,11 +510,26 @@ mod tests {
         });
         let models = catalog_from_payload(&payload).unwrap();
         assert_eq!(models.as_array().unwrap().len(), 2);
-        let image = models.as_array().unwrap().iter().find(|m| m["output_type"] == "image").unwrap();
+        let image = models
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|m| m["output_type"] == "image")
+            .unwrap();
         assert_eq!(image["provider_tool"], "text_to_image");
         assert_eq!(image["parameters"][0]["name"], "prompt");
-        assert_eq!(image["parameters"][2]["options"], json!(["1"]));
-        let video = models.as_array().unwrap().iter().find(|m| m["output_type"] == "video").unwrap();
+        // Batch count keeps the server range — un-clamped for gallery results
+        assert_eq!(image["parameters"][2]["name"], "imageCount");
+        assert_eq!(image["parameters"][2]["min"].as_f64(), Some(1.0));
+        assert_eq!(image["parameters"][2]["max"].as_f64(), Some(9.0));
+        assert_eq!(image["parameters"][2]["default"].as_f64(), Some(1.0));
+        assert_eq!(image["parameters"][2].get("options"), None);
+        let video = models
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|m| m["output_type"] == "video")
+            .unwrap();
         assert_eq!(video["medias"][0]["name"], "first_image");
         assert_eq!(video["medias"][1]["name"], "tail_image");
     }

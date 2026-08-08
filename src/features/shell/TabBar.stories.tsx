@@ -1,7 +1,7 @@
 import { useReducer } from 'react'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { TabBar } from './TabBar'
-import { HOME_TAB, initialTabs, tabReducer, type TabState } from './tab-state'
+import { HOME_TAB, SETTINGS_TAB, initialTabs, tabReducer, type TabState } from './tab-state'
 
 const NAMES: Record<string, string> = {
   w1: 'Cinematic Promo',
@@ -48,4 +48,9 @@ export const MultipleTabs: Story = {
 
 export const HomeOnly: Story = {
   args: { initial: initialTabs },
+}
+
+/* Settings opens as its own closable tab — gear icon + fixed label */
+export const WithSettingsTab: Story = {
+  args: { initial: { tabs: ['w1', SETTINGS_TAB], active: SETTINGS_TAB } },
 }

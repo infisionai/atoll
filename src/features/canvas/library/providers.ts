@@ -6,7 +6,7 @@ import type { ModelSpec } from '../model-spec'
  * Provider connect/disconnect is handled in settings.
  */
 
-export type ProviderId = 'higgsfield' | 'magnific' | 'kling'
+export type ProviderId = 'higgsfield' | 'magnific' | 'kling' | 'elevenlabs'
 
 export interface ProviderCatalog {
   id: ProviderId
@@ -23,6 +23,7 @@ export function buildProviders(models: ModelSpec[]): ProviderCatalog[] {
     { id: 'higgsfield', name: 'Higgsfield', models: byProvider('higgsfield'), connected: true },
     { id: 'magnific', name: 'Magnific', models: byProvider('magnific'), connected: false },
     { id: 'kling', name: 'Kling', models: byProvider('kling'), connected: false },
+    { id: 'elevenlabs', name: 'ElevenLabs', models: byProvider('elevenlabs'), connected: false },
   ]
 }
 
@@ -40,10 +41,14 @@ export interface ProviderStatus {
   /** One-line intro shown on the unconnected card */
   description?: string
   state: ProviderConnState
+  /** OAuth for MCP providers; API key for native providers */
+  authKind?: 'oauth' | 'api_key'
   /** For displaying the connected account (email, etc.) */
   account?: string
   /** Balance cache — refetched only on job completion or manual refresh */
   balance?: number
+  /** Optional provider-specific balance label */
+  balanceUnit?: string
   /** Credit purchase page — provided by the Rust ProviderStatusDto */
   pricingUrl?: string
   /** Notice when connected but usage is restricted (e.g. premium only) — set on the frontend */

@@ -61,6 +61,10 @@ pub struct ProviderStatusDto {
     pub name: String,
     /// disconnected | connecting | connected | expired
     pub state: String,
+    /// oauth | api_key
+    pub auth_kind: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub balance_unit: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub account: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -102,7 +106,10 @@ impl McpConnection {
 
     /// Parent of the creds folder (the app data folder) — used to compute catalog cache paths
     pub fn app_data_dir(&self) -> PathBuf {
-        self.dir.parent().map(|p| p.to_path_buf()).unwrap_or_else(|| self.dir.clone())
+        self.dir
+            .parent()
+            .map(|p| p.to_path_buf())
+            .unwrap_or_else(|| self.dir.clone())
     }
 
     fn creds_path(dir: &PathBuf, id: &str) -> PathBuf {
@@ -159,6 +166,8 @@ impl McpConnection {
             id: self.config.id.into(),
             name: self.config.name.into(),
             state: state.into(),
+            auth_kind: "oauth".into(),
+            balance_unit: None,
             account: creds.account.clone(),
             balance: *self.balance.lock().await,
             pricing_url: self.config.pricing_url.into(),
@@ -177,13 +186,21 @@ impl McpConnection {
     }
 
     /// Dynamic client registration — done once when there is no client_id
-    async fn ensure_client_id(&self, disc: &Discovery, redirect_uri: &str) -> Result<String, String> {
+    async fn ensure_client_id(
+        &self,
+        disc: &Discovery,
+        redirect_uri: &str,
+    ) -> Result<String, String> {
         if let Some(id) = self.creds.lock().await.client_id.clone() {
             return Ok(id);
         }
         // If discovery lacks it, try the MCP host's conventional path
         let fallback = || -> String {
-            let base = self.config.mcp_url.trim_end_matches("/mcp").trim_end_matches('/');
+            let base = self
+                .config
+                .mcp_url
+                .trim_end_matches("/mcp")
+                .trim_end_matches('/');
             format!("{base}/oauth2/register")
         };
         let reg = disc.registration_endpoint.clone().unwrap_or_else(fallback);
@@ -266,7 +283,11 @@ impl McpConnection {
         //  holds the listener forever and the next connect attempt fails to bind the port)
         let expected_state = state.clone();
         let code = tokio::task::spawn_blocking(move || {
-            wait_for_callback(listener, &expected_state, std::time::Duration::from_secs(300))
+            wait_for_callback(
+                listener,
+                &expected_state,
+                std::time::Duration::from_secs(300),
+            )
         })
         .await
         .map_err(|e| e.to_string())??;
@@ -403,7 +424,9 @@ impl McpConnection {
 
     /// Balance query — config.balance_tool. Finds the credit number in the response and caches it
     pub async fn refresh_balance(&self) -> Result<f64, String> {
-        let result = self.tool_call(self.config.balance_tool, serde_json::json!({})).await?;
+        let result = self
+            .tool_call(self.config.balance_tool, serde_json::json!({}))
+            .await?;
         let credits = extract_credits(&result)
             .ok_or_else(|| format!("No credits found in the balance response: {result}"))?;
         self.cache_balance(credits).await;
@@ -490,7 +513,9 @@ fn wait_for_callback(
         stream.set_nonblocking(false).map_err(|e| e.to_string())?;
         let mut reader = BufReader::new(stream.try_clone().map_err(|e| e.to_string())?);
         let mut request_line = String::new();
-        reader.read_line(&mut request_line).map_err(|e| e.to_string())?;
+        reader
+            .read_line(&mut request_line)
+            .map_err(|e| e.to_string())?;
 
         let parsed = oauth::parse_callback(&request_line);
         let ok = matches!(&parsed, Some((_, s)) if s == expected_state);
@@ -520,8 +545,8 @@ mod tests {
     fn jwt_email_from_token() {
         use base64::Engine;
         // {"email":"a@b.c"} — reads the payload without verification (display only)
-        let payload = base64::engine::general_purpose::URL_SAFE_NO_PAD
-            .encode(br#"{"email":"a@b.c"}"#);
+        let payload =
+            base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(br#"{"email":"a@b.c"}"#);
         let token = format!("h.{payload}.s");
         assert_eq!(jwt_email(&token), Some("a@b.c".into()));
         assert_eq!(jwt_email("opaque-token"), None);
@@ -529,7 +554,10 @@ mod tests {
 
     #[test]
     fn extract_credits_from_common_shapes() {
-        assert_eq!(extract_credits(&serde_json::json!({"credits": 62.5})), Some(62.5));
+        assert_eq!(
+            extract_credits(&serde_json::json!({"credits": 62.5})),
+            Some(62.5)
+        );
         assert_eq!(
             extract_credits(&serde_json::json!({"data": {"available_credits": 10}})),
             Some(10.0)

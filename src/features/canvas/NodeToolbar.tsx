@@ -13,8 +13,6 @@ import styles from './NodeToolbar.module.css'
 interface NodeToolbarProps {
   /** Actions to expose — only those runnable on the selected nodes (graph/toolbar-actions) */
   actions: ToolbarAction[]
-  /** Run button disabled (only edit nodes selected — run not wired up yet) */
-  runDisabled?: boolean
   running?: boolean
   /** Copy the agent reference text to the clipboard (Cmd-C) */
   onCopy?: () => void
@@ -30,7 +28,6 @@ interface NodeToolbarProps {
 /** Action toolbar floating above the selected nodes — shows only actions runnable per node */
 export function NodeToolbar({
   actions,
-  runDisabled,
   running,
   onCopy,
   copied,
@@ -65,7 +62,7 @@ export function NodeToolbar({
           type="button"
           className={`${styles.button} ${styles.run}`}
           title="Run (⌘↵)"
-          disabled={running || runDisabled}
+          disabled={running}
           onClick={onRun}
         >
           {running ? (

@@ -2,13 +2,18 @@
 
 export type ParamType = 'string' | 'number' | 'bool' | 'string_array'
 
+export interface ParamOption {
+  label: string
+  value: string
+}
+
 export interface ParamSpec {
   name: string
   required: 'required' | 'optional'
   type: ParamType
   description?: string
   default?: unknown
-  options?: string[]
+  options?: Array<string | ParamOption>
   min?: number
   max?: number
   format?: string
@@ -40,6 +45,10 @@ export interface ModelSpec {
   provider_model?: string
   /** When false, the frontend doesn't call the estimate IPC */
   supports_estimate?: boolean
+  /** The count param is app-level fan-out (N parallel submits) — the provider has no native batch */
+  client_batch?: boolean
+  /** Unit displayed beside a local/provider estimate; existing providers default to cr */
+  estimate_unit?: string
   description?: string
   output_type: 'image' | 'video' | 'audio' | '3d' | string
   parameters?: ParamSpec[]
