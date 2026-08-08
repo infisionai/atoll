@@ -22,11 +22,84 @@ pub struct Magnific {
     pub conn: McpConnection,
 }
 
+/// Batch count from the form value — sliders send numbers, segments send numeric strings
+fn numeric_count(v: Option<&Value>) -> Option<u64> {
+    match v? {
+        Value::Number(n) => n.as_u64().or_else(|| n.as_f64().map(|f| f as u64)),
+        Value::String(s) => s.parse::<u64>().ok(),
+        _ => None,
+    }
+}
+
+/// Extract a Magnific creation identifier from the response shapes returned by the upload tool.
+fn parse_creation_identifier(payload: &Value) -> Option<String> {
+    const KEYS: [&str; 6] = [
+        "creationIdentifier",
+        "creation_identifier",
+        "creationId",
+        "creation_id",
+        "identifier",
+        "id",
+    ];
+
+    for key in KEYS {
+        if let Some(identifier) = payload.get(key).and_then(Value::as_str) {
+            return Some(identifier.to_string());
+        }
+    }
+
+    if let Some(object) = payload.as_object() {
+        for nested in object.values() {
+            for key in KEYS {
+                if let Some(identifier) = nested.get(key).and_then(Value::as_str) {
+                    return Some(identifier.to_string());
+                }
+            }
+        }
+    }
+
+    None
+}
+
 impl Magnific {
     pub fn new(app_data_dir: PathBuf) -> Self {
         Self {
             conn: McpConnection::new(CONFIG, app_data_dir),
         }
+    }
+
+    /// Upload a remote image to Magnific and return its creation identifier.
+    pub async fn upload_image_url(&self, url: &str) -> Result<String, String> {
+        let payload = self
+            .conn
+            .tool_call("creations_upload_image", json!({ "url": url }))
+            .await?;
+        parse_creation_identifier(&payload).ok_or_else(|| {
+            format!(
+                "No creation identifier found in the creations_upload_image response: {payload}"
+            )
+        })
+    }
+
+    /// Pre-resolve cross-provider media into Magnific creation identifiers.
+    pub async fn resolve_cross_media(&self, params: &mut Value) -> Result<(), String> {
+        let Some(medias) = params.get_mut("medias").and_then(|v| v.as_array_mut()) else {
+            return Ok(());
+        };
+
+        for media in medias {
+            if media.get("provider").and_then(Value::as_str) == Some(PROVIDER_ID) {
+                continue;
+            }
+
+            let Some(url) = media.get("url").and_then(Value::as_str).map(str::to_owned) else {
+                continue;
+            };
+            let creation_identifier = self.upload_image_url(&url).await?;
+            media["value"] = Value::String(creation_identifier);
+        }
+
+        Ok(())
     }
 
     /// Generation submit — converts run-params (the shared frontend format) into images_generate arguments.
@@ -74,10 +147,14 @@ impl Magnific {
                 args.insert("resolution".into(), json!(res));
             }
         }
+        // Batch count 1..8 — omitted at 1 so the default-path wire payload stays unchanged
+        if let Some(n) = numeric_count(params.get("count")) {
+            let n = n.clamp(1, 8);
+            if n >= 2 {
+                args.insert("count".into(), json!(n));
+            }
+        }
         // Upstream references — medias[{value, role}] → references[{type, identifier}].
-        // Both submit and estimate take the short creation id (value) — verified against the
-        // live server; URLs are rejected with "Creation not found". (The earlier "URL required"
-        // error turned out to come from Higgsfield)
         if let Some(medias) = params.get("medias").and_then(|v| v.as_array()) {
             let refs: Vec<Value> = medias
                 .iter()
@@ -96,8 +173,7 @@ impl Magnific {
 
     /// Video generation — goes straight to video_generate with a single clip
     /// (video_plan is for multi-clip — later).
-    /// The start-frame url is "an asset URL or a creation identifier" — a sqid for the same
-    /// provider, or the enriched remote URL when cross-provider (source isn't magnific)
+    /// The start-frame value is a Magnific creation identifier after pre-resolution.
     fn build_video_generate(params: &Value) -> Result<(&'static str, Value), String> {
         let prompt = params
             .get("prompt")
@@ -144,12 +220,7 @@ impl Magnific {
             .and_then(|v| v.as_array())
             .and_then(|a| a.first())
         {
-            let same_provider = m.get("provider").and_then(|v| v.as_str()) == Some(PROVIDER_ID);
-            let ident = if same_provider {
-                m.get("value").and_then(|v| v.as_str())
-            } else {
-                m.get("url").and_then(|v| v.as_str())
-            };
+            let ident = m.get("value").and_then(|v| v.as_str());
             if let Some(u) = ident {
                 clip.insert(
                     "keyframes".into(),
@@ -287,7 +358,6 @@ mod tests {
 
     #[test]
     fn reference_uses_creation_id_everywhere() {
-        // Verified against the live server: both submit and estimate take the short creation id — URLs are rejected
         let params = json!({
             "model": "magnific/x", "prompt": "p",
             "medias": [{ "value": "4RNtpok9Aa", "role": "image", "url": "https://cdn/x.png" }]
@@ -299,6 +369,44 @@ mod tests {
             est["arguments"]["references"][0]["identifier"],
             "4RNtpok9Aa"
         );
+    }
+
+    #[test]
+    fn image_count_passes_through_only_when_batching() {
+        let batch = json!({ "model": "magnific/x", "prompt": "p", "count": "3" });
+        let (_, args) = Magnific::submit_call("image", &batch).unwrap();
+        assert_eq!(args["count"], 3);
+        let (_, est) = Magnific::estimate_call("image", &batch).unwrap();
+        assert_eq!(est["arguments"]["count"], 3);
+
+        // count 1 or absent keeps the default-path payload byte-identical
+        let single = json!({ "model": "magnific/x", "prompt": "p", "count": 1 });
+        let (_, args) = Magnific::submit_call("image", &single).unwrap();
+        assert_eq!(args.get("count"), None);
+        let (_, args) =
+            Magnific::submit_call("image", &json!({ "model": "magnific/x", "prompt": "p" }))
+                .unwrap();
+        assert_eq!(args.get("count"), None);
+
+        // Out-of-range values clamp into 1..8
+        let over = json!({ "model": "magnific/x", "prompt": "p", "count": 20 });
+        let (_, args) = Magnific::submit_call("image", &over).unwrap();
+        assert_eq!(args["count"], 8);
+    }
+
+    #[test]
+    fn image_cross_provider_reference_uses_resolved_creation_id() {
+        let params = json!({
+            "model": "magnific/x", "prompt": "p",
+            "medias": [{
+                "value": "uploaded-creation",
+                "role": "image",
+                "url": "https://cdn/h.png",
+                "provider": "higgsfield"
+            }]
+        });
+        let (_, args) = Magnific::submit_call("image", &params).unwrap();
+        assert_eq!(args["references"][0]["identifier"], "uploaded-creation");
     }
 
     #[test]
@@ -319,16 +427,37 @@ mod tests {
     }
 
     #[test]
-    fn video_cross_provider_start_frame_uses_url() {
+    fn video_cross_provider_start_frame_uses_resolved_creation_id() {
         let params = json!({
             "model": "magnific/x", "prompt": "p", "duration": "8",
-            "medias": [{ "value": "fa685029-9201-4592-a152-e9a1c05ae0d4", "role": "image", "url": "https://cdn/h.png", "provider": "higgsfield" }]
+            "medias": [{ "value": "uploaded-creation", "role": "image", "url": "https://cdn/h.png", "provider": "higgsfield" }]
         });
         let (_, args) = Magnific::submit_call("video", &params).unwrap();
         assert_eq!(
             args["video"]["clips"][0]["keyframes"]["start"]["url"],
-            "https://cdn/h.png"
+            "uploaded-creation"
         );
+    }
+
+    #[test]
+    fn parses_creation_identifier_from_supported_response_shapes() {
+        assert_eq!(
+            parse_creation_identifier(&json!({ "creationIdentifier": "cr-1" })),
+            Some("cr-1".into())
+        );
+        assert_eq!(
+            parse_creation_identifier(&json!({ "creation": { "identifier": "cr-2" } })),
+            Some("cr-2".into())
+        );
+        assert_eq!(
+            parse_creation_identifier(&json!({ "result": { "id": "cr-3" } })),
+            Some("cr-3".into())
+        );
+    }
+
+    #[test]
+    fn missing_creation_identifier_is_rejected() {
+        assert_eq!(parse_creation_identifier(&json!({ "status": "ok" })), None);
     }
 
     #[test]

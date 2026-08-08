@@ -1,8 +1,9 @@
 import { useCallback, useMemo, useReducer, useState } from 'react'
 import { CanvasTab } from './features/shell/CanvasTab'
 import { TabBar } from './features/shell/TabBar'
-import { HOME_TAB, initialTabs, tabReducer } from './features/shell/tab-state'
+import { HOME_TAB, SETTINGS_TAB, initialTabs, tabReducer } from './features/shell/tab-state'
 import { Dashboard } from './features/dashboard/Dashboard'
+import { NewSpaceDialog } from './features/dashboard/NewSpaceDialog'
 import { ProviderSettings } from './features/providers/ProviderSettings'
 import { buildProviders } from './features/canvas/library/providers'
 import { ipc } from './ipc/commands'
@@ -12,7 +13,6 @@ import styles from './App.module.css'
 
 export function App() {
   const [tabState, dispatchTabs] = useReducer(tabReducer, initialTabs)
-  const [homeView, setHomeView] = useState<'dashboard' | 'settings'>('dashboard')
   const workspaces = useInvoke(() => ipc.listWorkspaces(), [])
   const prov = useProviders()
 
@@ -72,8 +72,12 @@ export function App() {
 
   const openWorkspace = (id: string) => dispatchTabs({ type: 'tab/open', id })
 
-  const createAndOpen = async () => {
-    const meta = await ipc.createWorkspace('Untitled Space')
+  // "+ New space" opens a name prompt first — creation happens on confirm
+  const [creating, setCreating] = useState(false)
+
+  const createAndOpen = async (name: string) => {
+    const meta = await ipc.createWorkspace(name)
+    setCreating(false)
     workspaces.reload()
     openWorkspace(meta.id)
   }
@@ -82,8 +86,7 @@ export function App() {
   const onSaved = useCallback(() => reload(), [reload])
 
   const openSettings = useCallback(() => {
-    setHomeView('settings')
-    dispatchTabs({ type: 'tab/activate', id: HOME_TAB })
+    dispatchTabs({ type: 'tab/open', id: SETTINGS_TAB })
   }, [])
 
   return (
@@ -93,63 +96,66 @@ export function App() {
         names={names}
         onActivate={(id) => dispatchTabs({ type: 'tab/activate', id })}
         onClose={(id) => dispatchTabs({ type: 'tab/close', id })}
-        onNew={() => void createAndOpen()}
+        onNew={() => setCreating(true)}
       />
 
       <main className={styles.main}>
         <div className={styles.pane} hidden={tabState.active !== HOME_TAB}>
-          {homeView === 'settings' ? (
-            <ProviderSettings
-              providers={prov.statuses}
-              connectErrors={prov.connectErrors}
-              onConnect={(id) => prov.connect(id)}
-              onSetApiKey={(id, apiKey) => prov.setApiKey(id, apiKey)}
-              onDisconnect={(id) => prov.disconnect(id)}
-              onRefreshBalance={(id) => prov.refreshBalance(id)}
-              onBuyCredits={(id) => {
-                const url = prov.statuses.find((s) => s.id === id)?.pricingUrl
-                if (url) window.open(url, '_blank')
-              }}
-              onBack={() => setHomeView('dashboard')}
-            />
-          ) : (
-            <Dashboard
-              workspaces={workspaces.data ?? []}
-              graphs={graphs.data ?? undefined}
-              now={Date.now()}
-              onOpen={openWorkspace}
-              onCreate={() => void createAndOpen()}
-              onOpenSettings={openSettings}
-              onRename={(id, name) => {
-                void ipc.renameWorkspace(id, name).then(reload)
-              }}
-              onDuplicate={(id) => {
-                void ipc.duplicateWorkspace(id).then(reload)
-              }}
-              onDelete={(id) => {
-                void ipc.deleteWorkspace(id).then(() => {
-                  dispatchTabs({ type: 'tab/close', id })
-                  reload()
-                })
-              }}
-            />
-          )}
+          <Dashboard
+            workspaces={workspaces.data ?? []}
+            graphs={graphs.data ?? undefined}
+            now={Date.now()}
+            onOpen={openWorkspace}
+            onCreate={() => setCreating(true)}
+            onOpenSettings={openSettings}
+            onRename={(id, name) => {
+              void ipc.renameWorkspace(id, name).then(reload)
+            }}
+            onDuplicate={(id) => {
+              void ipc.duplicateWorkspace(id).then(reload)
+            }}
+            onDelete={(id) => {
+              void ipc.deleteWorkspace(id).then(() => {
+                dispatchTabs({ type: 'tab/close', id })
+                reload()
+              })
+            }}
+          />
         </div>
 
         {/* All open canvases stay mounted — editing state survives tab switches */}
         {tabState.tabs.map((id) => (
           <div key={id} className={styles.pane} hidden={tabState.active !== id}>
-            <CanvasTab
-              workspaceId={id}
-              providers={providers}
-              balances={prov.statuses}
-              onRefreshBalance={(id) => prov.refreshBalance(id)}
-              onSaved={onSaved}
-              onOpenSettings={openSettings}
-            />
+            {id === SETTINGS_TAB ? (
+              <ProviderSettings
+                providers={prov.statuses}
+                connectErrors={prov.connectErrors}
+                onConnect={(id) => prov.connect(id)}
+                onSetApiKey={(id, apiKey) => prov.setApiKey(id, apiKey)}
+                onDisconnect={(id) => prov.disconnect(id)}
+                onRefreshBalance={(id) => prov.refreshBalance(id)}
+                onBuyCredits={(id) => {
+                  const url = prov.statuses.find((s) => s.id === id)?.pricingUrl
+                  if (url) window.open(url, '_blank')
+                }}
+              />
+            ) : (
+              <CanvasTab
+                workspaceId={id}
+                providers={providers}
+                balances={prov.statuses}
+                onRefreshBalance={(id) => prov.refreshBalance(id)}
+                onSaved={onSaved}
+                onOpenSettings={openSettings}
+              />
+            )}
           </div>
         ))}
       </main>
+
+      {creating && (
+        <NewSpaceDialog onConfirm={createAndOpen} onCancel={() => setCreating(false)} />
+      )}
     </div>
   )
 }

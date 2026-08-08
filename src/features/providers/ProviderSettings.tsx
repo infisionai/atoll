@@ -15,10 +15,9 @@ interface ProviderSettingsProps {
   onRefreshBalance: (id: string) => Promise<unknown> | void
   /** Buy credits — opens the provider's web checkout page in an external browser (no in-app payments) */
   onBuyCredits: (id: string) => void
-  onBack?: () => void
 }
 
-/** Settings > Provider connections — the settings screen inside the Home tab */
+/** Settings > Provider connections — opens in its own shell tab */
 export function ProviderSettings({
   providers,
   connectErrors,
@@ -27,18 +26,12 @@ export function ProviderSettings({
   onDisconnect,
   onRefreshBalance,
   onBuyCredits,
-  onBack,
 }: ProviderSettingsProps) {
   const [apiKeys, setApiKeys] = useState<Record<string, string>>({})
 
   return (
     <div className={styles.page}>
       <header className={styles.hero}>
-        {onBack && (
-          <button type="button" className={styles.back} onClick={onBack}>
-            ← Dashboard
-          </button>
-        )}
         <h1 className={styles.title}>Provider Connections</h1>
         <p className={styles.subtitle}>Connect the MCP providers you want to generate with.</p>
       </header>

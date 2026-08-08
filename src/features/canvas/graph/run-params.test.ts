@@ -81,4 +81,37 @@ describe('buildRunParams', () => {
     const r = buildRunParams(g, n, MODEL)
     expect(r.params).not.toHaveProperty('medias')
   })
+
+  it('selected gallery item rides along as the media url (remoteUrl first)', () => {
+    const n = modelNode({ prompt: 'lighthouse' })
+    const upstream: GraphNode = {
+      id: 'r1',
+      kind: 'asset',
+      ref: 'image',
+      x: 0,
+      y: 0,
+      values: {
+        jobId: 'job-2',
+        media: { url: 'asset://cache/job-2.png', remoteUrl: 'https://cdn/b.png' },
+      },
+    }
+    const g = state([n, upstream], [{ from: 'r1:__out', to: 'm1:input_image' }])
+    const r = buildRunParams(g, n, MODEL)
+    expect(r.params.medias).toEqual([{ value: 'job-2', role: 'image', url: 'https://cdn/b.png' }])
+  })
+
+  it('non-https media urls (blob/asset) are not forwarded', () => {
+    const n = modelNode({ prompt: 'lighthouse' })
+    const upstream: GraphNode = {
+      id: 'r1',
+      kind: 'asset',
+      ref: 'image',
+      x: 0,
+      y: 0,
+      values: { jobId: 'job-3', media: { url: 'blob:local' } },
+    }
+    const g = state([n, upstream], [{ from: 'r1:__out', to: 'm1:input_image' }])
+    const r = buildRunParams(g, n, MODEL)
+    expect(r.params.medias).toEqual([{ value: 'job-3', role: 'image' }])
+  })
 })

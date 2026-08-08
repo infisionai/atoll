@@ -5,7 +5,6 @@
 
 import type { GraphNode, GraphState } from './graph-state'
 import type { ModelSpec } from '../model-spec'
-import { EDIT_OPS, type EditOpId } from './edit-ops'
 
 export const NODE_REF_PREFIX = '@atoll:node/'
 
@@ -74,8 +73,6 @@ export function describeNode(ctx: NodeRefContext, id: string): string[] {
       return describeAsset(ctx, node)
     case 'model':
       return describeModel(ctx, node)
-    case 'edit':
-      return describeEdit(ctx, node)
   }
 }
 
@@ -121,16 +118,6 @@ function describeModel(ctx: NodeRefContext, node: GraphNode): string[] {
   return lines
 }
 
-function describeEdit(ctx: NodeRefContext, node: GraphNode): string[] {
-  const op = EDIT_OPS[node.ref as EditOpId]
-  const lines = [head(node.id, `Edit · ${op?.name ?? node.ref}`)]
-  lines.push(...optionLines(node.values))
-  const result = node.values.result as MediaLike | undefined
-  lines.push(...mediaLines(KIND_LABEL[op?.output ?? ''] ?? 'result', op?.output ?? '', result))
-  lines.push(...inputLines(ctx.graph, node.id))
-  return lines
-}
-
 // ── Shared line builders ──
 
 function head(id: string, summary: string): string {
@@ -159,7 +146,18 @@ function promptOf(values: Record<string, unknown>): string | undefined {
 
 /** Non-prompt scalar values that are filled in — internal keys (__ prefix, state bookkeeping) excluded, max 6 */
 function optionLines(values: Record<string, unknown>): string[] {
-  const skip = new Set(['generating', 'progressNote', 'sourceNode', 'jobId'])
+  const skip = new Set([
+    'generating',
+    'progressNote',
+    'sourceNode',
+    'jobId',
+    // Batch (gallery) bookkeeping
+    'jobIds',
+    'items',
+    'settled',
+    'expected',
+    'selected',
+  ])
   const pairs = Object.entries(values)
     .filter(
       ([k, v]) =>

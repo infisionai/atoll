@@ -267,6 +267,18 @@ img.thumb[data-loaded='true'] {
   color: var(--text-secondary);
 }
 
+/* Batch gallery — arrived/expected counter + cancel under the tile grid */
+.galleryFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2) var(--space-1) 0;
+}
+
+.galleryFooter .progressNote {
+  font-family: var(--font-mono);
+}
+
 .cancel {
   border: none;
   background: none;

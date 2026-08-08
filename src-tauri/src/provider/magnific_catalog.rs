@@ -34,6 +34,69 @@ pub fn filter_unsupported_models(mut catalog: Value) -> Value {
                 .is_none_or(|slug| !is_auto_model_slug(slug))
         });
     }
+    ensure_count_params(catalog)
+}
+
+/// The batch `count` parameter — images_generate takes 1..8 at the tool level
+fn count_param() -> Value {
+    json!({
+        "name": "count",
+        "required": "optional",
+        "type": "number",
+        "description": "Number of images",
+        "default": 1,
+        "min": 1,
+        "max": 8,
+    })
+}
+
+/// video_generate has no native count — the app fans out N parallel submits instead.
+/// Capped at 4: no provider-side concurrency info is queryable, so stay conservative
+fn client_count_param() -> Value {
+    json!({
+        "name": "count",
+        "required": "optional",
+        "type": "number",
+        "description": "Number of results (parallel runs)",
+        "default": 1,
+        "min": 1,
+        "max": 4,
+    })
+}
+
+/// Catalog caches saved before the batch feature lack the count parameter — inject it
+/// on load (fresh conversions already carry it). Image models get the native
+/// images_generate count; video models get the client fan-out count + client_batch flag
+pub fn ensure_count_params(mut catalog: Value) -> Value {
+    if let Some(models) = catalog.as_array_mut() {
+        for model in models {
+            let output = model
+                .get("output_type")
+                .and_then(Value::as_str)
+                .unwrap_or("")
+                .to_string();
+            if output != "image" && output != "video" {
+                continue;
+            }
+            if output == "video" && model.get("client_batch").is_none() {
+                model["client_batch"] = json!(true);
+            }
+            let Some(parameters) = model.get_mut("parameters").and_then(|p| p.as_array_mut())
+            else {
+                continue;
+            };
+            let has_count = parameters
+                .iter()
+                .any(|p| p.get("name").and_then(Value::as_str) == Some("count"));
+            if !has_count {
+                parameters.push(if output == "image" {
+                    count_param()
+                } else {
+                    client_count_param()
+                });
+            }
+        }
+    }
     catalog
 }
 
@@ -156,6 +219,13 @@ pub fn to_model_spec(entry: &Map<String, Value>) -> Option<Value> {
             "options": res,
         }));
     }
+    if output_type == "image" {
+        // images_generate takes count 1..8 (tool-level, not per-model)
+        parameters.push(count_param());
+    } else {
+        // video_generate has no count — the frontend fans out N parallel submits
+        parameters.push(client_count_param());
+    }
 
     // Media input ports:
     // - image models: references — only roles that can take a generation result (creation)
@@ -206,7 +276,7 @@ pub fn to_model_spec(entry: &Map<String, Value>) -> Option<Value> {
         None => kind_label.to_string(),
     };
 
-    Some(json!({
+    let mut spec = json!({
         "id": format!("{ID_PREFIX}{slug}"),
         "name": name,
         "provider": "magnific",
@@ -217,7 +287,12 @@ pub fn to_model_spec(entry: &Map<String, Value>) -> Option<Value> {
         "medias": medias,
         "aspect_ratios": entry.get("aspectRatios").cloned().unwrap_or(json!([])),
         "tags": tags,
-    }))
+    });
+    if output_type == "video" {
+        // Marks the count param as app-level fan-out (N parallel submits), not a provider argument
+        spec["client_batch"] = json!(true);
+    }
+    Some(spec)
 }
 
 /// Response text → ModelSpec array. Unconvertible models are excluded and the counts are logged
@@ -303,6 +378,11 @@ mod tests {
         assert_eq!(spec["provider_name"], "imagen");
         assert_eq!(spec["parameters"][0]["name"], "resolution");
         assert_eq!(spec["parameters"][0]["options"], json!(["1k", "2k", "4k"]));
+        // Batch count — image models expose the images_generate tool-level 1..8 knob
+        assert_eq!(spec["parameters"][1]["name"], "count");
+        assert_eq!(spec["parameters"][1]["min"], json!(1));
+        assert_eq!(spec["parameters"][1]["max"], json!(8));
+        assert_eq!(spec["parameters"][1]["default"], json!(1));
         assert_eq!(spec["medias"][0]["name"], "references");
         // character/product are library-only, so excluded — only roles that take a creation
         assert_eq!(spec["medias"][0]["roles"], json!(["image"]));
@@ -321,6 +401,15 @@ mod tests {
             spec["parameters"][0]["options"],
             json!(["5", "6", "8", "10"])
         );
+        // Video has no provider-native count — the app fans out instead (client_batch)
+        let count = spec["parameters"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|p| p["name"] == "count")
+            .unwrap();
+        assert_eq!(count["max"], json!(4));
+        assert_eq!(spec["client_batch"], json!(true));
         // The FIXTURE's video entry lacks supportsStartFrame → no start-frame port
         assert_eq!(spec["medias"], json!([]));
         let catalog = catalog_from_text(FIXTURE);
@@ -349,6 +438,30 @@ mod tests {
             .unwrap()
             .iter()
             .any(|m| m["id"] == "magnific/gemini-omni-preview"));
+    }
+
+    #[test]
+    fn cached_catalog_gains_count_param_on_load() {
+        // A pre-batch cache: image model without count, video model untouched
+        let cached = json!([
+            { "id": "magnific/classic", "output_type": "image",
+              "parameters": [{ "name": "resolution", "type": "string" }] },
+            { "id": "magnific/kling-30", "output_type": "video",
+              "parameters": [{ "name": "duration", "type": "string" }] }
+        ]);
+        let out = filter_unsupported_models(cached);
+        let image = &out.as_array().unwrap()[0];
+        assert_eq!(image["parameters"][1]["name"], "count");
+        assert_eq!(image["parameters"][1]["max"], json!(8));
+        // Video gains the client fan-out count (1..4) and the client_batch marker
+        let video = &out.as_array().unwrap()[1];
+        assert_eq!(video["parameters"][1]["name"], "count");
+        assert_eq!(video["parameters"][1]["max"], json!(4));
+        assert_eq!(video["client_batch"], json!(true));
+
+        // Idempotent — a cache that already has count is unchanged
+        let again = filter_unsupported_models(out.clone());
+        assert_eq!(again, out);
     }
 
     #[test]

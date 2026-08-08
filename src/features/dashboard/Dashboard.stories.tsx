@@ -32,9 +32,9 @@ const GRAPHS: Record<string, GraphDoc> = {
   w2: {
     nodes: [
       { id: 'm1', kind: 'model', ref: 'x', x: 0, y: 0, values: {} },
-      { id: 'e1', kind: 'edit', ref: 'upscale', x: 380, y: 80, values: {} },
+      { id: 'a1', kind: 'asset', ref: 'image', x: 380, y: 80, values: {} },
     ],
-    edges: [{ from: 'm1:__out', to: 'e1:input' }],
+    edges: [{ from: 'm1:__out', to: 'a1:__result' }],
   },
 }
 

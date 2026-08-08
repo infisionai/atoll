@@ -3,7 +3,6 @@ import { useRef, useState } from 'react'
 import { Port, type PortConfig } from '../Port'
 import type { FieldSpec } from '../form-spec'
 import type { ParamOption } from '../model-spec'
-import { VoiceField } from './VoiceField'
 import styles from './FormField.module.css'
 
 /** Media field item — result of a local file pick (replaced by a real upload at the Tauri stage) */
@@ -216,14 +215,6 @@ function Control({
         </button>
       )
     }
-    case 'voice':
-      return (
-        <VoiceField
-          id={field.name}
-          value={value as string | undefined}
-          onChange={(v) => set(v)}
-        />
-      )
     case 'media':
       return (
         <MediaField

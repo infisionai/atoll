@@ -152,23 +152,6 @@ describe('describeNode — asset (result)', () => {
   })
 })
 
-describe('describeNode — edit', () => {
-  it('lists the op label and upstream inputs', () => {
-    const g = graph(
-      [
-        node({ id: 'a', kind: 'asset', ref: 'image' }),
-        node({ id: 'e1', kind: 'edit', ref: 'upscale', values: { scale: '4x' } }),
-      ],
-      [{ from: 'a:__out', to: 'e1:image' }],
-    )
-    expect(describeNode(ctx(g), 'e1')).toEqual([
-      '@atoll:node/e1 — Edit · Upscale',
-      'Options: scale=4x',
-      'Inputs: @atoll:node/a',
-    ])
-  })
-})
-
 describe('orderedSelection · nodeReferenceText', () => {
   it('sorts by (y, x, id) regardless of selection insertion order', () => {
     const g: GraphState = {

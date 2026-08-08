@@ -41,11 +41,11 @@ export const NodesOnly: Story = {
       nodes: [
         { id: 'a', kind: 'asset', ref: 'image', x: 0, y: 120, values: {} },
         { id: 'm', kind: 'model', ref: 'x', x: 320, y: 0, values: {} },
-        { id: 'e', kind: 'edit', ref: 'upscale', x: 740, y: 160, values: {} },
+        { id: 'r', kind: 'asset', ref: 'image', x: 740, y: 160, values: {} },
       ],
       edges: [
         { from: 'a:__out', to: 'm:medias' },
-        { from: 'm:__out', to: 'e:input' },
+        { from: 'm:__out', to: 'r:__result' },
       ],
     },
   },

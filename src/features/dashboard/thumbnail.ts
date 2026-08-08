@@ -29,7 +29,6 @@ export interface ThumbLayout {
 /** Approximate node size in world coordinates — width from the standard width tokens, height from the average rendered height */
 const NODE_SIZE: Record<NodeKind, { w: number; h: number }> = {
   model: { w: 300, h: 380 },
-  edit: { w: 240, h: 230 },
   asset: { w: 208, h: 250 },
 }
 

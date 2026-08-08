@@ -143,12 +143,25 @@ pub async fn submit_generation(
     {
         let s = store.0.lock().unwrap();
         for id in &job_ids {
-            let _ = s.insert_job(id, &workspace_id, &node_id, "running", &payload.to_string(), &provider_id);
+            let _ = s.insert_job(
+                id,
+                &workspace_id,
+                &node_id,
+                "running",
+                &payload.to_string(),
+                &provider_id,
+            );
         }
     }
 
     for id in &job_ids {
-        spawn_job_poll(app.clone(), id.clone(), workspace_id.clone(), node_id.clone(), provider_id.clone());
+        spawn_job_poll(
+            app.clone(),
+            id.clone(),
+            workspace_id.clone(),
+            node_id.clone(),
+            provider_id.clone(),
+        );
     }
 
     Ok(serde_json::json!({ "jobIds": job_ids }))
@@ -194,13 +207,15 @@ fn enrich_media_urls(store: &State<'_, AppState>, params: &mut serde_json::Value
     };
     let s = store.0.lock().unwrap();
     for m in medias {
-        let Some(job_id) = m.get("value").and_then(|v| v.as_str()) else { continue };
-        let Ok((payload, _, provider)) = s.jobs_for_workspace_by_job(job_id) else { continue };
+        let Some(job_id) = m.get("value").and_then(|v| v.as_str()) else {
+            continue;
+        };
+        let Ok((payload, _, provider)) = s.jobs_for_workspace_by_job(job_id) else {
+            continue;
+        };
         let v: serde_json::Value = serde_json::from_str(&payload).unwrap_or_default();
-        if let Some(url) = crate::provider::jobs::extract_urls(&v)
-            .into_iter()
-            .find(|u| u.starts_with("https://"))
-        {
+        let existing = m.get("url").and_then(|u| u.as_str()).map(str::to_string);
+        if let Some(url) = crate::provider::jobs::enriched_media_url(existing.as_deref(), &v) {
             m["url"] = serde_json::json!(url);
         }
         m["provider"] = serde_json::json!(provider);
@@ -220,7 +235,11 @@ pub fn list_jobs(state: State<AppState>, workspace_id: String) -> Result<Vec<Job
                 job_id,
                 node_id,
                 workspace_id: workspace_id.clone(),
-                urls: if status == "done" { extract_urls(&v) } else { vec![] },
+                urls: if status == "done" {
+                    extract_urls(&v)
+                } else {
+                    vec![]
+                },
                 local_path: media_path,
                 message: (status == "failed").then(|| failure_message(&v)),
                 status,
@@ -250,12 +269,23 @@ pub fn spawn_job_poll(
         return;
     }
     tauri::async_runtime::spawn(async move {
-        use crate::provider::jobs::{classify_status, extract_urls, failure_message, poll_after_seconds, JobPhase};
+        use crate::provider::jobs::{
+            classify_status, extract_urls, failure_message, poll_after_seconds, JobPhase,
+        };
         let started = std::time::Instant::now();
 
         loop {
             if started.elapsed().as_secs() > 30 * 60 {
-                emit_job(&app, &job_id, &workspace_id, &node_id, "failed", vec![], None, Some("Tracking timed out (30 minutes)".into()));
+                emit_job(
+                    &app,
+                    &job_id,
+                    &workspace_id,
+                    &node_id,
+                    "failed",
+                    vec![],
+                    None,
+                    Some("Tracking timed out (30 minutes)".into()),
+                );
                 break;
             }
 
@@ -271,7 +301,16 @@ pub fn spawn_job_poll(
             let p = match prov.0.by_id(&provider_id) {
                 Ok(p) => p.clone(),
                 Err(e) => {
-                    emit_job(&app, &job_id, &workspace_id, &node_id, "failed", vec![], None, Some(e));
+                    emit_job(
+                        &app,
+                        &job_id,
+                        &workspace_id,
+                        &node_id,
+                        "failed",
+                        vec![],
+                        None,
+                        Some(e),
+                    );
                     break;
                 }
             };
@@ -312,7 +351,16 @@ pub fn spawn_job_poll(
                         if let (Some(path), Some(state)) = (&local, app.try_state::<AppState>()) {
                             let _ = state.0.lock().unwrap().set_job_media(&job_id, path);
                         }
-                        emit_job(&app, &job_id, &workspace_id, &node_id, "done", urls, local, None);
+                        emit_job(
+                            &app,
+                            &job_id,
+                            &workspace_id,
+                            &node_id,
+                            "done",
+                            urls,
+                            local,
+                            None,
+                        );
                         // Credits were deducted — refetch the balance and push (balance refreshes on job completion)
                         if p.refresh_balance().await.is_ok() {
                             let _ = app.emit("provider/balance-changed", p.status().await);
@@ -322,7 +370,16 @@ pub fn spawn_job_poll(
                     JobPhase::Failed => {
                         let msg = failure_message(&payload);
                         update_job_row(&app, &job_id, "failed", &payload);
-                        emit_job(&app, &job_id, &workspace_id, &node_id, "failed", vec![], None, Some(msg));
+                        emit_job(
+                            &app,
+                            &job_id,
+                            &workspace_id,
+                            &node_id,
+                            "failed",
+                            vec![],
+                            None,
+                            Some(msg),
+                        );
                         if p.refresh_balance().await.is_ok() {
                             let _ = app.emit("provider/balance-changed", p.status().await);
                         }
@@ -541,8 +598,14 @@ async fn download_media(app: &AppHandle, job_id: &str, url: &str) -> Option<Stri
     // Size cap — stream to disk in chunks so a huge (or malicious) response
     // can't exhaust memory or the disk
     const MAX_MEDIA_BYTES: u64 = 512 * 1024 * 1024;
-    if resp.content_length().is_some_and(|len| len > MAX_MEDIA_BYTES) {
-        log::warn!("Media too large ({safe_id}): {:?} bytes", resp.content_length());
+    if resp
+        .content_length()
+        .is_some_and(|len| len > MAX_MEDIA_BYTES)
+    {
+        log::warn!(
+            "Media too large ({safe_id}): {:?} bytes",
+            resp.content_length()
+        );
         return None;
     }
     let mut file = std::fs::File::create(&path).ok()?;
@@ -566,7 +629,11 @@ async fn download_media(app: &AppHandle, job_id: &str, url: &str) -> Option<Stri
 
 fn update_job_row(app: &AppHandle, job_id: &str, status: &str, payload: &serde_json::Value) {
     if let Some(state) = app.try_state::<AppState>() {
-        let _ = state.0.lock().unwrap().update_job(job_id, status, &payload.to_string());
+        let _ = state
+            .0
+            .lock()
+            .unwrap()
+            .update_job(job_id, status, &payload.to_string());
     }
 }
 

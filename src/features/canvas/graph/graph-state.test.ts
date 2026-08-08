@@ -47,6 +47,13 @@ describe('node actions', () => {
     expect(s.nodes.a.values).toEqual({ prompt: 'sky' })
     expect(s.nodes.b.values).toEqual({})
   })
+
+  it('patchValues — merges multiple keys in one step, keeps other keys', () => {
+    let s = graphReducer(base, { type: 'node/setValue', id: 'a', name: 'kept', value: 1 })
+    s = graphReducer(s, { type: 'node/patchValues', id: 'a', patch: { x: 'x', y: 'y' } })
+    expect(s.nodes.a.values).toEqual({ kept: 1, x: 'x', y: 'y' })
+    expect(graphReducer(s, { type: 'node/patchValues', id: 'ghost', patch: { x: 1 } })).toBe(s)
+  })
 })
 
 describe('edge actions', () => {

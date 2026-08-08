@@ -163,17 +163,3 @@
   color: var(--accent-coral);
   background: none;
 }
-
-.back {
-  justify-self: start;
-  border: none;
-  background: none;
-  color: var(--text-muted);
-  font-size: var(--text-xs);
-  cursor: pointer;
-  padding: 0;
-}
-
-.back:hover {
-  color: var(--text-secondary);
-}

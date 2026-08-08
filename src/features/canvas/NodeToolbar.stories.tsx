@@ -24,11 +24,6 @@ export const ModelNode: Story = {
   args: { actions: ['copy', 'duplicate', 'run', 'delete'] },
 }
 
-/* Only edit nodes selected — run visible but disabled (run not wired up yet) */
-export const EditNode: Story = {
-  args: { actions: ['copy', 'duplicate', 'run', 'delete'], runDisabled: true },
-}
-
 /* Empty asset node — copy, duplicate, delete only */
 export const AssetNode: Story = {
   args: { actions: ['copy', 'duplicate', 'delete'] },
