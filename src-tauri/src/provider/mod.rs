@@ -98,11 +98,10 @@ impl Provider {
     }
 
     /// Async pre-resolution before submit/estimate — conversions that need a server round-trip, e.g. cross-provider references.
-    /// (higgsfield: turns URL references into media_ids via media_import_url / magnific: not needed)
     pub async fn prepare_params(&self, params: &mut Value) -> Result<(), String> {
         match self {
             Provider::Higgsfield(h) => h.resolve_cross_media(params).await,
-            Provider::Magnific(_) => Ok(()),
+            Provider::Magnific(m) => m.resolve_cross_media(params).await,
             Provider::Kling(_) => Ok(()),
             Provider::ElevenLabs(_) => Ok(()),
         }
