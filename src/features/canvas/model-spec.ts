@@ -45,6 +45,8 @@ export interface ModelSpec {
   provider_model?: string
   /** When false, the frontend doesn't call the estimate IPC */
   supports_estimate?: boolean
+  /** The count param is app-level fan-out (N parallel submits) — the provider has no native batch */
+  client_batch?: boolean
   /** Unit displayed beside a local/provider estimate; existing providers default to cr */
   estimate_unit?: string
   description?: string

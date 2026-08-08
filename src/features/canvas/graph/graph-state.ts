@@ -38,6 +38,7 @@ export type GraphAction =
   | { type: 'node/move'; ids: readonly string[]; dx: number; dy: number }
   | { type: 'node/remove'; ids: readonly string[] }
   | { type: 'node/setValue'; id: string; name: string; value: unknown }
+  | { type: 'node/patchValues'; id: string; patch: Record<string, unknown> }
   | { type: 'edge/connect'; from: string; to: string; max: number }
   | { type: 'edge/remove'; from: string; to: string }
   | { type: 'selection/set'; ids: readonly string[] }
@@ -78,6 +79,19 @@ export function graphReducer(state: GraphState, action: GraphAction): GraphState
         nodes: {
           ...state.nodes,
           [action.id]: { ...n, values: { ...n.values, [action.name]: action.value } },
+        },
+      }
+    }
+
+    case 'node/patchValues': {
+      // Multi-key value update in one step — batch job merges write several related keys atomically
+      const n = state.nodes[action.id]
+      if (!n) return state
+      return {
+        ...state,
+        nodes: {
+          ...state.nodes,
+          [action.id]: { ...n, values: { ...n.values, ...action.patch } },
         },
       }
     }

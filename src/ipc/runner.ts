@@ -81,15 +81,20 @@ function browserRunner(workspaceId: string): GenerationRunner {
   const listeners = new Set<(u: JobUpdate) => void>()
   const canceled = new Set<string>()
   return {
-    async submit(nodeId) {
-      const jobId = `dev-${crypto.randomUUID().slice(0, 8)}`
-      setTimeout(() => {
-        if (canceled.has(jobId)) return
-        for (const cb of listeners) {
-          cb({ jobId, nodeId, workspaceId, status: 'done', urls: [PLACEHOLDER] })
-        }
-      }, 2500)
-      return { jobIds: [jobId] }
+    async submit(nodeId, _kind, params) {
+      // Batch (count > 1) simulates the N-jobs-per-submit shape with staggered arrivals
+      const raw = params.count ?? params.imageCount ?? params.image_count
+      const n = Math.max(1, Math.floor(Number(raw)) || 1)
+      const jobIds = Array.from({ length: n }, () => `dev-${crypto.randomUUID().slice(0, 8)}`)
+      jobIds.forEach((jobId, i) => {
+        setTimeout(() => {
+          if (canceled.has(jobId)) return
+          for (const cb of listeners) {
+            cb({ jobId, nodeId, workspaceId, status: 'done', urls: [PLACEHOLDER] })
+          }
+        }, 2500 + i * 900)
+      })
+      return { jobIds }
     },
     subscribe(cb) {
       listeners.add(cb)

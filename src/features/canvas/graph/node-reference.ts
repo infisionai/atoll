@@ -146,7 +146,18 @@ function promptOf(values: Record<string, unknown>): string | undefined {
 
 /** Non-prompt scalar values that are filled in — internal keys (__ prefix, state bookkeeping) excluded, max 6 */
 function optionLines(values: Record<string, unknown>): string[] {
-  const skip = new Set(['generating', 'progressNote', 'sourceNode', 'jobId'])
+  const skip = new Set([
+    'generating',
+    'progressNote',
+    'sourceNode',
+    'jobId',
+    // Batch (gallery) bookkeeping
+    'jobIds',
+    'items',
+    'settled',
+    'expected',
+    'selected',
+  ])
   const pairs = Object.entries(values)
     .filter(
       ([k, v]) =>

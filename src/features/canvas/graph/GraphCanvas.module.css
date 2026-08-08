@@ -225,3 +225,23 @@
     translate: -50% calc(-100% - var(--space-1));
   }
 }
+
+/* Gallery drag-out ghost — the item travels with the cursor as a floating thumbnail */
+.itemGhost {
+  position: absolute;
+  z-index: 30;
+  width: 72px;
+  height: 72px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-raised);
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+.itemGhost img,
+.itemGhost video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
