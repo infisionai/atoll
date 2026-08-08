@@ -21,8 +21,17 @@ const CONFIG: ProviderConfig = ProviderConfig {
 fn is_uuid_like(s: &str) -> bool {
     let parts: Vec<&str> = s.split('-').collect();
     parts.len() == 5
-        && [8, 4, 4, 4, 12] == [parts[0].len(), parts[1].len(), parts[2].len(), parts[3].len(), parts[4].len()]
-        && parts.iter().all(|p| p.chars().all(|c| c.is_ascii_hexdigit()))
+        && [8, 4, 4, 4, 12]
+            == [
+                parts[0].len(),
+                parts[1].len(),
+                parts[2].len(),
+                parts[3].len(),
+                parts[4].len(),
+            ]
+        && parts
+            .iter()
+            .all(|p| p.chars().all(|c| c.is_ascii_hexdigit()))
 }
 
 pub struct Higgsfield {
@@ -31,7 +40,9 @@ pub struct Higgsfield {
 
 impl Higgsfield {
     pub fn new(app_data_dir: PathBuf) -> Self {
-        Self { conn: McpConnection::new(CONFIG, app_data_dir) }
+        Self {
+            conn: McpConnection::new(CONFIG, app_data_dir),
+        }
     }
 
     /// Generation submit tool — per kind (image → generate_image)
@@ -90,7 +101,9 @@ impl Higgsfield {
                 }
             }
         }
-        Err(format!("No media id found in the media_import_url response: {payload}"))
+        Err(format!(
+            "No media id found in the media_import_url response: {payload}"
+        ))
     }
 
     /// Pre-resolve cross-provider media — references that aren't own UUIDs go through import to become media_ids
@@ -106,7 +119,11 @@ impl Higgsfield {
             let url = m.get("url").and_then(|v| v.as_str()).map(|s| s.to_string());
             if !value_is_uuid {
                 if let Some(u) = url {
-                    let role = m.get("role").and_then(|r| r.as_str()).unwrap_or("image").to_string();
+                    let role = m
+                        .get("role")
+                        .and_then(|r| r.as_str())
+                        .unwrap_or("image")
+                        .to_string();
                     let media_id = self.import_media_url(&u, &role).await?;
                     m["value"] = Value::String(media_id);
                 }
@@ -120,11 +137,17 @@ impl Higgsfield {
 
     /// Job status query tool and arguments
     pub fn status_call(job_id: &str) -> (&'static str, Value) {
-        ("job_status", serde_json::json!({ "jobId": job_id, "sync": true }))
+        (
+            "job_status",
+            serde_json::json!({ "jobId": job_id, "sync": true }),
+        )
     }
 
     fn catalog_path(&self) -> PathBuf {
-        self.conn.app_data_dir().join("catalog").join("higgsfield.json")
+        self.conn
+            .app_data_dir()
+            .join("catalog")
+            .join("higgsfield.json")
     }
 
     /// Cached catalog (None if absent)
@@ -190,7 +213,10 @@ impl Higgsfield {
     }
 
     fn presets_path(&self) -> PathBuf {
-        self.conn.app_data_dir().join("catalog").join("higgsfield_presets.json")
+        self.conn
+            .app_data_dir()
+            .join("catalog")
+            .join("higgsfield_presets.json")
     }
 
     /// Video presets (presets_show) — same file cache policy as the catalog (read-only — no credits)
@@ -204,7 +230,11 @@ impl Higgsfield {
                 return Ok(v);
             }
         }
-        match self.conn.tool_call("presets_show", serde_json::json!({})).await {
+        match self
+            .conn
+            .tool_call("presets_show", serde_json::json!({}))
+            .await
+        {
             Ok(payload) => {
                 let path = self.presets_path();
                 if let Some(parent) = path.parent() {
@@ -256,7 +286,10 @@ mod tests {
             "medias": [{ "value": "fa685029-9201-4592-a152-e9a1c05ae0d4", "role": "image", "url": "https://cdn/y.png" }]
         });
         let n = Higgsfield::normalize_params(&params);
-        assert_eq!(n["medias"][0]["value"], "fa685029-9201-4592-a152-e9a1c05ae0d4");
+        assert_eq!(
+            n["medias"][0]["value"],
+            "fa685029-9201-4592-a152-e9a1c05ae0d4"
+        );
         assert!(n["medias"][0].get("url").is_none());
     }
 

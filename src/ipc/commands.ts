@@ -50,6 +50,7 @@ interface IpcApi {
   saveGraph: (workspaceId: string, graph: GraphDoc) => Promise<void>
   listProviders: () => Promise<ProviderStatus[]>
   connectProvider: (id: string) => Promise<ProviderStatus>
+  setProviderApiKey: (providerId: string, apiKey: string) => Promise<ProviderStatus>
   disconnectProvider: (id: string) => Promise<void>
   refreshBalance: (id: string) => Promise<number>
   /** Provider model catalog — cache-first; with refresh, re-fetches from the server */
@@ -75,6 +76,8 @@ const tauriIpc: IpcApi = {
   saveGraph: (workspaceId, graph) => invoke<void>('save_graph', { workspaceId, graph }),
   listProviders: () => invoke<ProviderStatus[]>('list_providers'),
   connectProvider: (id) => invoke<ProviderStatus>('connect_provider', { id }),
+  setProviderApiKey: (providerId, apiKey) =>
+    invoke<ProviderStatus>('set_provider_api_key', { providerId, apiKey }),
   disconnectProvider: (id) => invoke<void>('disconnect_provider', { id }),
   refreshBalance: (id) => invoke<number>('refresh_balance', { id }),
   getCatalog: (id, refresh) => invoke<ModelSpec[]>('get_catalog', { id, refresh }),
@@ -181,6 +184,13 @@ const browserIpc: IpcApi = {
     devProviders.set(id, connected)
     return connected
   },
+  async setProviderApiKey(id, _apiKey) {
+    const p = devProviders.get(id)
+    if (!p) throw new Error(`Unsupported provider: ${id}`)
+    const connected: ProviderStatus = { ...p, state: 'connected', balance: 100 }
+    devProviders.set(id, connected)
+    return connected
+  },
   async disconnectProvider(id) {
     const p = devProviders.get(id)
     if (!p) throw new Error(`Unsupported provider: ${id}`)
@@ -220,6 +230,7 @@ const devProviders = new Map<string, ProviderStatus>([
   ['higgsfield', { id: 'higgsfield', name: 'Higgsfield', state: 'disconnected' }],
   ['magnific', { id: 'magnific', name: 'Magnific', state: 'disconnected' }],
   ['kling', { id: 'kling', name: 'Kling', state: 'disconnected' }],
+  ['elevenlabs', { id: 'elevenlabs', name: 'ElevenLabs', state: 'disconnected', authKind: 'api_key' }],
 ])
 
 export const ipc: IpcApi = isTauri() ? tauriIpc : browserIpc

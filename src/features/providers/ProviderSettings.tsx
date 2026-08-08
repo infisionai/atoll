@@ -1,10 +1,16 @@
 import { BusyButton } from '../../shared/BusyButton'
+import { useState } from 'react'
 import type { ProviderStatus } from '../canvas/library/providers'
+import { usesApiKey } from './auth-kind'
+import { displayProviderError } from './provider-error'
 import styles from './ProviderSettings.module.css'
 
 interface ProviderSettingsProps {
   providers: ProviderStatus[]
+  /** Per-provider connect/key-validation failure messages (useProviders.connectErrors) */
+  connectErrors?: Record<string, string>
   onConnect: (id: string) => Promise<unknown> | void
+  onSetApiKey: (id: string, apiKey: string) => Promise<unknown> | void
   onDisconnect: (id: string) => Promise<unknown> | void
   onRefreshBalance: (id: string) => Promise<unknown> | void
   /** Buy credits — opens the provider's web checkout page in an external browser (no in-app payments) */
@@ -15,12 +21,16 @@ interface ProviderSettingsProps {
 /** Settings > Provider connections — the settings screen inside the Home tab */
 export function ProviderSettings({
   providers,
+  connectErrors,
   onConnect,
+  onSetApiKey,
   onDisconnect,
   onRefreshBalance,
   onBuyCredits,
   onBack,
 }: ProviderSettingsProps) {
+  const [apiKeys, setApiKeys] = useState<Record<string, string>>({})
+
   return (
     <div className={styles.page}>
       <header className={styles.hero}>
@@ -49,7 +59,9 @@ export function ProviderSettings({
 
             {p.state === 'connected' && (
               <div className={styles.balanceRow}>
-                <span className={styles.balance}>⚡ {p.balance?.toFixed(2) ?? '—'}</span>
+                <span className={styles.balance}>
+                  ⚡ {p.balance?.toFixed(2) ?? '—'}{p.balanceUnit ? ` ${p.balanceUnit}` : ''}
+                </span>
                 {p.notice && <span className={styles.notice}>{p.notice}</span>}
                 <BusyButton className={styles.action} onClick={() => onRefreshBalance(p.id)}>
                   Refresh balance
@@ -69,12 +81,54 @@ export function ProviderSettings({
             {p.state === 'disconnected' && (
               <div className={styles.balanceRow}>
                 {p.description && <span className={styles.description}>{p.description}</span>}
-                <BusyButton
-                  className={`${styles.action} ${styles.primary}`}
-                  onClick={() => onConnect(p.id)}
-                >
-                  Connect
-                </BusyButton>
+                {usesApiKey(p) ? (
+                  <>
+                    <input
+                      className={styles.keyInput}
+                      type="password"
+                      autoComplete="current-password"
+                      placeholder="Paste API key"
+                      aria-label={`${p.name} API key`}
+                      value={apiKeys[p.id] ?? ''}
+                      onChange={(event) =>
+                        setApiKeys((keys) => ({ ...keys, [p.id]: event.target.value }))
+                      }
+                    />
+                    <BusyButton
+                      className={`${styles.action} ${styles.primary}`}
+                      disabled={!apiKeys[p.id]?.trim()}
+                      onClick={() =>
+                        Promise.resolve(onSetApiKey(p.id, apiKeys[p.id] ?? '')).then(
+                          () => setApiKeys((keys) => ({ ...keys, [p.id]: '' })),
+                          // Validation failure keeps the typed key; the reason renders below
+                          () => {},
+                        )
+                      }
+                    >
+                      Connect
+                    </BusyButton>
+                    <a
+                      className={styles.keyHelp}
+                      href={p.pricingUrl ?? 'https://elevenlabs.io/app/settings/api-keys'}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Get an API key ↗
+                    </a>
+                  </>
+                ) : (
+                  <BusyButton
+                    className={`${styles.action} ${styles.primary}`}
+                    onClick={() => onConnect(p.id)}
+                  >
+                    Connect
+                  </BusyButton>
+                )}
+                {displayProviderError(connectErrors?.[p.id]) && (
+                  <span className={styles.notice} role="alert">
+                    {displayProviderError(connectErrors?.[p.id])}
+                  </span>
+                )}
               </div>
             )}
 

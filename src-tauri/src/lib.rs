@@ -23,6 +23,7 @@ pub fn run() {
       commands::save_graph,
       commands::list_providers,
       commands::connect_provider,
+      commands::set_provider_api_key,
       commands::disconnect_provider,
       commands::refresh_balance,
       commands::get_catalog,
@@ -63,6 +64,9 @@ pub fn run() {
         Arc::new(provider::Provider::Kling(
           provider::kling::Kling::new(dir.clone()),
         )),
+        Arc::new(provider::Provider::ElevenLabs(
+          provider::elevenlabs::ElevenLabs::new(dir.clone()),
+        )),
       ])));
 
       // Local MCP server — entry point for Claude Code to manipulate the canvas
@@ -75,8 +79,18 @@ pub fn run() {
         jobs.unwrap_or_default()
       };
       for (job_id, workspace_id, node_id, provider_id) in open {
-        log::info!("Resuming unsettled job: {job_id} ({provider_id})");
-        commands::spawn_job_poll(app.handle().clone(), job_id, workspace_id, node_id, provider_id);
+        if provider_id == provider::elevenlabs::PROVIDER_ID {
+          log::info!("Closing lost synchronous ElevenLabs job after restart: {job_id}");
+          commands::fail_lost_native_job(
+            app.handle(),
+            &job_id,
+            &workspace_id,
+            &node_id,
+          );
+        } else {
+          log::info!("Resuming unsettled job: {job_id} ({provider_id})");
+          commands::spawn_job_poll(app.handle().clone(), job_id, workspace_id, node_id, provider_id);
+        }
       }
       Ok(())
     })

@@ -40,7 +40,11 @@ function BalanceChip({
       <span className={styles.dot} aria-hidden />
       {p.name}
       <span className={styles.amount}>
-        {busy ? <Spinner size={11} /> : <>⚡ {p.balance?.toFixed(2) ?? '—'}</>}
+        {busy ? (
+          <Spinner size={11} />
+        ) : (
+          <>⚡ {p.balance?.toFixed(2) ?? '—'}{p.balanceUnit ? ` ${p.balanceUnit}` : ''}</>
+        )}
       </span>
     </button>
   )
