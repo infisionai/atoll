@@ -42,7 +42,7 @@
   font-weight: var(--font-weight-medium);
 }
 
-.homeIcon {
+.tabIcon {
   width: 13px;
   height: 13px;
   flex-shrink: 0;

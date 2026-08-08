@@ -1,9 +1,11 @@
 /**
  * App shell tab state — pure reducer.
  * The Home tab always exists and cannot be closed. Canvas tabs are identified by workspace id.
+ * The Settings tab is a reserved id that opens/closes like a canvas tab.
  */
 
 export const HOME_TAB = 'home'
+export const SETTINGS_TAB = 'settings'
 
 export interface TabState {
   /** Open canvas tabs (workspace ids), in order */
