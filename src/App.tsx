@@ -1,8 +1,9 @@
-import { useCallback, useMemo, useReducer } from 'react'
+import { useCallback, useMemo, useReducer, useState } from 'react'
 import { CanvasTab } from './features/shell/CanvasTab'
 import { TabBar } from './features/shell/TabBar'
 import { HOME_TAB, SETTINGS_TAB, initialTabs, tabReducer } from './features/shell/tab-state'
 import { Dashboard } from './features/dashboard/Dashboard'
+import { NewSpaceDialog } from './features/dashboard/NewSpaceDialog'
 import { ProviderSettings } from './features/providers/ProviderSettings'
 import { buildProviders } from './features/canvas/library/providers'
 import { ipc } from './ipc/commands'
@@ -71,8 +72,12 @@ export function App() {
 
   const openWorkspace = (id: string) => dispatchTabs({ type: 'tab/open', id })
 
-  const createAndOpen = async () => {
-    const meta = await ipc.createWorkspace('Untitled Space')
+  // "+ New space" opens a name prompt first — creation happens on confirm
+  const [creating, setCreating] = useState(false)
+
+  const createAndOpen = async (name: string) => {
+    const meta = await ipc.createWorkspace(name)
+    setCreating(false)
     workspaces.reload()
     openWorkspace(meta.id)
   }
@@ -91,7 +96,7 @@ export function App() {
         names={names}
         onActivate={(id) => dispatchTabs({ type: 'tab/activate', id })}
         onClose={(id) => dispatchTabs({ type: 'tab/close', id })}
-        onNew={() => void createAndOpen()}
+        onNew={() => setCreating(true)}
       />
 
       <main className={styles.main}>
@@ -101,7 +106,7 @@ export function App() {
             graphs={graphs.data ?? undefined}
             now={Date.now()}
             onOpen={openWorkspace}
-            onCreate={() => void createAndOpen()}
+            onCreate={() => setCreating(true)}
             onOpenSettings={openSettings}
             onRename={(id, name) => {
               void ipc.renameWorkspace(id, name).then(reload)
@@ -147,6 +152,10 @@ export function App() {
           </div>
         ))}
       </main>
+
+      {creating && (
+        <NewSpaceDialog onConfirm={createAndOpen} onCancel={() => setCreating(false)} />
+      )}
     </div>
   )
 }
