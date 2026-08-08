@@ -5,7 +5,6 @@
 
 import type { GraphNode, GraphState } from './graph-state'
 import type { ModelSpec } from '../model-spec'
-import { EDIT_OPS, type EditOpId } from './edit-ops'
 
 export const NODE_REF_PREFIX = '@atoll:node/'
 
@@ -74,8 +73,6 @@ export function describeNode(ctx: NodeRefContext, id: string): string[] {
       return describeAsset(ctx, node)
     case 'model':
       return describeModel(ctx, node)
-    case 'edit':
-      return describeEdit(ctx, node)
   }
 }
 
@@ -117,16 +114,6 @@ function describeModel(ctx: NodeRefContext, node: GraphNode): string[] {
   const prompt = promptOf(node.values)
   if (prompt) lines.push(`Prompt: "${prompt}"`)
   lines.push(...optionLines(node.values))
-  lines.push(...inputLines(ctx.graph, node.id))
-  return lines
-}
-
-function describeEdit(ctx: NodeRefContext, node: GraphNode): string[] {
-  const op = EDIT_OPS[node.ref as EditOpId]
-  const lines = [head(node.id, `Edit · ${op?.name ?? node.ref}`)]
-  lines.push(...optionLines(node.values))
-  const result = node.values.result as MediaLike | undefined
-  lines.push(...mediaLines(KIND_LABEL[op?.output ?? ''] ?? 'result', op?.output ?? '', result))
   lines.push(...inputLines(ctx.graph, node.id))
   return lines
 }

@@ -40,8 +40,8 @@ fn tools() -> Vec<ToolDef> {
             description: "Add a node to the canvas. When kind=model, ref is a model id from list_models. Use the returned nodeId to set values, connect, and run.",
             input_schema: obj(
                 json!({
-                    "kind": { "type": "string", "enum": ["model", "asset", "edit"] },
-                    "ref": { "type": "string", "description": "model: model id / asset: image|video / edit: edit op id" },
+                    "kind": { "type": "string", "enum": ["model", "asset"] },
+                    "ref": { "type": "string", "description": "model: model id / asset: image|video" },
                     "x": { "type": "number" }, "y": { "type": "number" },
                     "values": { "type": "object", "description": "Initial field values (e.g. {\"prompt\": \"...\"})" }
                 }),

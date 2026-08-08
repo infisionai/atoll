@@ -9,7 +9,6 @@ import {
   type PointerEvent,
 } from 'react'
 import { AssetNode, RESULT_IN_PORT, type AssetKind } from '../AssetNode'
-import { EDIT_IN_PORT, EditNode } from '../EditNode'
 import { NodeCard, OUT_PORT } from '../NodeCard'
 import { NodeToolbar } from '../NodeToolbar'
 import type { NodeStatus } from '../StatusBadge'
@@ -18,7 +17,6 @@ import { buildFormSpec, maxItemsOf, portTypeOf } from '../form-spec'
 import type { ModelSpec } from '../model-spec'
 import { canConnect, compatible, type PortValueType } from './connect-rules'
 import { edgeMidpoint, edgePath, type Point } from './edge-path'
-import { EDIT_OPS, type EditOpId } from './edit-ops'
 import {
   connectionsOf,
   emptyGraph,
@@ -156,13 +154,12 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(funct
     [catalog],
   )
 
-  /** Output port value type — asset: its asset kind, edit op: its output type, model: the model's output_type */
+  /** Output port value type — asset: its asset kind, model: the model's output_type */
   const outTypeOf = useCallback(
     (nodeId: string): PortValueType | null => {
       const n = graphRef.current.nodes[nodeId]
       if (!n) return null
       if (n.kind === 'asset') return n.ref as PortValueType
-      if (n.kind === 'edit') return EDIT_OPS[n.ref as EditOpId].output
       const model = modelOf(n)
       return model ? portTypeOf(model, OUT_PORT) : null
     },
@@ -177,9 +174,6 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(funct
       if (n.kind === 'model') {
         const model = modelOf(n)
         return model ? portTypeOf(model, portName) : null
-      }
-      if (n.kind === 'edit') {
-        return portName === EDIT_IN_PORT ? EDIT_OPS[n.ref as EditOpId].input : null
       }
       return null // Asset nodes have no input ports
     },
@@ -251,7 +245,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(funct
         if (!el) return
         const r = el.getBoundingClientRect()
         const center = screenToWorld(vpRef.current, { x: r.width / 2, y: r.height / 2 })
-        const ref = def.model ?? def.asset ?? def.edit ?? 'node'
+        const ref = def.model ?? def.asset ?? 'node'
         const id = `${ref}-${crypto.randomUUID().slice(0, 8)}`
         const node = buildNode(catalog, {
           id,
@@ -382,19 +376,13 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(funct
         if (kind === 'asset' && ref !== 'image' && ref !== 'video') {
           throw new Error('asset ref must be image or video')
         }
-        if (kind === 'edit' && !(ref in EDIT_OPS)) throw new Error(`Unknown edit op: ${ref}`)
 
         const rect = containerRef.current?.getBoundingClientRect()
         const center = rect
           ? screenToWorld(vpRef.current, { x: rect.width / 2, y: rect.height / 2 })
           : { x: 150, y: 100 }
         const id = `${ref}-${crypto.randomUUID().slice(0, 8)}`
-        const def =
-          kind === 'model'
-            ? { model: ref }
-            : kind === 'asset'
-              ? { asset: ref as AssetKind }
-              : { edit: ref as EditOpId }
+        const def = kind === 'model' ? { model: ref } : { asset: ref as AssetKind }
         const node = buildNode(catalog, {
           id,
           x: (cmd.x as number | undefined) ?? center.x - 150,
@@ -965,7 +953,6 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(funct
           >
             <NodeToolbar
               actions={toolbar.actions}
-              runDisabled={toolbar.runDisabled}
               onCopy={() => copySelection('token')}
               copied={copied}
               onDuplicate={duplicateSelection}
@@ -993,22 +980,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(funct
               style={{ left: gn.x, top: gn.y }}
               onPointerDown={(e) => beginNodeDrag(gn.id, e)}
             >
-              {gn.kind === 'edit' ? (
-                <EditNode
-                  op={gn.ref as EditOpId}
-                  status={(gn.values.__status as NodeStatus) ?? 'idle'}
-                  values={gn.values}
-                  inputFrom={incomingByPort(graph, gn.id)[EDIT_IN_PORT]?.[0]}
-                  connectedOut={connectionsOf(graph, gn.id)[OUT_PORT]}
-                  onChange={(name, value) =>
-                    dispatch({ type: 'node/setValue', id: gn.id, name, value })
-                  }
-                  onEdgeRemove={(from) =>
-                    dispatch({ type: 'edge/remove', from, to: `${gn.id}:${EDIT_IN_PORT}` })
-                  }
-                  {...common}
-                />
-              ) : gn.kind === 'asset' ? (
+              {gn.kind === 'asset' ? (
                 <AssetNode
                   kind={gn.ref as AssetKind}
                   media={gn.values.media as MediaValue | undefined}

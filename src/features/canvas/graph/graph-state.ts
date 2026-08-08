@@ -4,12 +4,12 @@
  * This shape is the direct basis for the SQLite storage schema.
  */
 
-export type NodeKind = 'model' | 'asset' | 'edit'
+export type NodeKind = 'model' | 'asset'
 
 export interface GraphNode {
   id: string
   kind: NodeKind
-  /** Per-kind reference — model: catalog model id, asset: 'image'|'video', edit: EditOpId */
+  /** Per-kind reference — model: catalog model id, asset: 'image'|'video' */
   ref: string
   x: number
   y: number

@@ -13,7 +13,6 @@ export type FieldKind =
   | 'toggle'
   | 'tags'
   | 'media'
-  | 'voice'
 
 export interface FieldSpec {
   name: string

@@ -23,14 +23,6 @@ describe('toolbarSpec', () => {
     const s = state([{ id: 'm', kind: 'model', ref: 'nano_banana' }], ['m'])
     const spec = toolbarSpec(s, CATALOG)
     expect(spec.actions).toEqual(['copy', 'duplicate', 'run', 'delete'])
-    expect(spec.runDisabled).toBe(false)
-  })
-
-  it('edit nodes only — run visible but disabled', () => {
-    const s = state([{ id: 'e', kind: 'edit', ref: 'upscale' }], ['e'])
-    const spec = toolbarSpec(s, CATALOG)
-    expect(spec.actions).toEqual(['copy', 'duplicate', 'run', 'delete'])
-    expect(spec.runDisabled).toBe(true)
   })
 
   it('empty asset node — duplicate and delete only', () => {
@@ -53,7 +45,6 @@ describe('toolbarSpec', () => {
     )
     const spec = toolbarSpec(s, CATALOG)
     expect(spec.actions).toEqual(['copy', 'duplicate', 'run', 'export', 'delete'])
-    expect(spec.runDisabled).toBe(false)
   })
 
   it('models not in the catalog are not runnable', () => {
